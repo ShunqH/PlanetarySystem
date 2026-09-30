@@ -15,6 +15,24 @@ namespace PlanetSystem.Core
         [Tooltip("Maximum number of massless test particles.")]
         public int MaxTestParticles = 10;
 
+        [Header("Time integration")]
+        [Tooltip("Target rendering frame rate. VSync is disabled so this is honoured exactly.")]
+        public int TargetFrameRate = 60;
+        [Tooltip("Default time acceleration in simulated years per real second.")]
+        public float DefaultSpeed = 1f;
+        [Tooltip("Index into the integrator list (0 = Leapfrog, 1 = Yoshida 4, 2 = Dormand-Prince).")]
+        public int DefaultIntegrator = 0;
+        [Tooltip("CPU time allowed for integration per frame, in milliseconds. If exceeded, the simulation runs slower than requested.")]
+        public float MaxIntegrationMsPerFrame = 8f;
+        [Tooltip("Leapfrog step as a fraction of the shortest dynamical timescale.")]
+        public float LeapfrogStepFraction = 0.03f;
+        [Tooltip("Yoshida step as a fraction of the shortest dynamical timescale.")]
+        public float YoshidaStepFraction = 0.06f;
+        [Tooltip("Relative per-step error tolerance of the adaptive Dormand-Prince integrator.")]
+        public float AdaptiveTolerance = 1e-10f;
+        [Tooltip("Plummer softening length in AU (0 = pure Newtonian).")]
+        public float SofteningAu = 0f;
+
         [Header("Rendering scale")]
         [Tooltip("Unity world units per astronomical unit.")]
         public float UnitsPerAu = 10f;

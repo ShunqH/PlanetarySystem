@@ -31,6 +31,7 @@ namespace PlanetSystem.UI
             panel.Build();
             controller.BodiesChanged += panel.Rebuild;
             controller.SelectionChanged += _ => panel.Rebuild();
+            controller.RunStateChanged += panel.Rebuild;
             panel.Rebuild();
             return panel;
         }
@@ -52,7 +53,7 @@ namespace PlanetSystem.UI
             _limits.text = $"Massive {_controller.MassiveCount}/{s.MaxMassiveBodies}   ·   Test particles {_controller.TestParticleCount}/{s.MaxTestParticles}";
             UIFactory.SetButtonText(_addButton, _controller.Bodies.Count == 0 ? "+ Add star" : "+ Add body");
             bool anyRoom = _controller.CanHaveKind(Physics.BodyKind.Massive, -1, out _) || _controller.CanHaveKind(Physics.BodyKind.TestParticle, -1, out _);
-            _addButton.interactable = anyRoom;
+            _addButton.interactable = anyRoom && !_controller.IsRunning;
 
             foreach (var rec in _controller.Bodies)
             {

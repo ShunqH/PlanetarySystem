@@ -41,6 +41,7 @@ namespace PlanetSystem.UI
             var editor = BodyEditorPanel.Create(canvasGo.transform, controller, scene);
             BodyListPanel.Create(canvasGo.transform, controller, editor);
             TopBar.Create(canvasGo.transform, controller, editor);
+            StatusBar.Create(canvasGo.transform, controller);
 
             controller.SelectionChanged += id =>
             {

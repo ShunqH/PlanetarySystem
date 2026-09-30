@@ -50,6 +50,8 @@ namespace PlanetSystem.UI
         private Mode _mode = Mode.Hidden;
         private int _editId = -1;
         private bool _suppress;
+        private float _nextLiveRefresh;
+        private bool _applying;
 
         public bool IsAdding => _mode == Mode.Add;
         public bool IsEditing => _mode == Mode.Edit;
@@ -67,6 +69,8 @@ namespace PlanetSystem.UI
             panel._scene = scene;
             panel._root = root;
             panel.Build();
+            controller.RunStateChanged += panel.OnRunStateChanged;
+            controller.BodiesChanged += panel.OnBodiesChanged;
             root.gameObject.SetActive(false);
             return panel;
         }
@@ -179,6 +183,60 @@ namespace PlanetSystem.UI
             _def = _controller.ToDefinition(rec);
             _root.gameObject.SetActive(true);
             Populate();
+            ApplyRunState();
+        }
+
+        /// <summary>Closes the panel only if it is in Add mode (used before actions that change the bodies).</summary>
+        public void CloseAdd()
+        {
+            if (_mode == Mode.Add) Close();
+        }
+
+        // ------------------------------------------------------------------
+        // Live view while integrating
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Keeps the Edit panel in sync with changes made elsewhere (Reset, stop, removals).
+        /// Changes made by this panel itself are ignored so unit choices are not reset while typing.
+        /// </summary>
+        private void OnBodiesChanged()
+        {
+            if (_applying || _mode != Mode.Edit) return;
+            RefreshFromState();
+        }
+
+        private void OnRunStateChanged()
+        {
+            if (_controller.IsRunning && _mode == Mode.Add) Close();
+            if (_mode == Mode.Edit) RefreshFromState();
+        }
+
+        /// <summary>Reloads the osculating elements of the edited body from the current state.</summary>
+        private void RefreshFromState()
+        {
+            var rec = _controller.Find(_editId);
+            if (rec == null) { Close(); return; }
+            _def = _controller.ToDefinition(rec);
+            Populate();
+            ApplyRunState();
+        }
+
+        /// <summary>While integrating the panel is a read-only live display; only "Done" stays active.</summary>
+        private void ApplyRunState()
+        {
+            bool readOnly = _controller.IsRunning;
+            foreach (var s in _root.GetComponentsInChildren<Selectable>(true)) s.interactable = !readOnly;
+            _primary.interactable = true;
+            if (readOnly) _title.text = $"Live: {_def.Name}";
+        }
+
+        private void Update()
+        {
+            if (_mode != Mode.Edit || !_controller.IsRunning) return;
+            if (Time.unscaledTime < _nextLiveRefresh) return;
+            _nextLiveRefresh = Time.unscaledTime + 0.1f;
+            RefreshFromState();
         }
 
         public void Close()
@@ -325,6 +383,16 @@ namespace PlanetSystem.UI
 
         private void UpdateInfo()
         {
+            if (_mode == Mode.Edit)
+            {
+                var rec = _controller.Find(_editId);
+                if (rec != null && _controller.TryGetReferenceState(rec.ReferenceId, rec.Id, out _, out _, out _) &&
+                    !_controller.TryGetElements(rec, out _, out _, out _))
+                {
+                    _info.text = "Currently unbound from its primary (e ≥ 1): the elements shown are not meaningful.";
+                    return;
+                }
+            }
             if (!_controller.TryGetReferenceState(_def.ReferenceId, _editId, out _, out _, out var refMass))
             {
                 _info.text = _mode == Mode.Add
@@ -344,6 +412,10 @@ namespace PlanetSystem.UI
                 double aBary = el.SemiMajorAxis * refMass / (refMass + bodyMass);
                 text += $"\nDrawn ellipse is the barycentric orbit: a = {aBary:0.####} AU.";
             }
+            if (_mode == Mode.Edit && _controller.IsRunning)
+                text += "\nLive osculating elements. Stop the integration to edit.";
+            else if (_mode == Mode.Edit && _controller.State.Time > 0.0)
+                text += "\nEditing orbit or mass sets new initial conditions and resets t to 0.";
             _info.text = text;
         }
 
@@ -429,7 +501,9 @@ namespace PlanetSystem.UI
             }
             else
             {
+                _applying = true;
                 _error.text = _controller.UpdateBody(_editId, _def, out var err) ? "" : err;
+                _applying = false;
             }
             UpdateInfo();
         }

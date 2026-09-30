@@ -20,6 +20,11 @@ namespace PlanetSystem.Core
         {
             var settings = SettingsOverride != null ? SettingsOverride : SimulationSettings.LoadOrDefault();
 
+            // A fixed frame rate keeps the simulated time per frame (speed / fps) constant, which lets the
+            // fixed-step integrators use one constant step size. VSync would override targetFrameRate.
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = settings.TargetFrameRate;
+
             var camera = Camera.main;
             if (camera == null)
             {

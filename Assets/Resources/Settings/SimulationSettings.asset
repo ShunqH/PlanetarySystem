@@ -14,6 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   MaxMassiveBodies: 4
   MaxTestParticles: 10
+  TargetFrameRate: 60
+  DefaultSpeed: 1
+  DefaultIntegrator: 0
+  MaxIntegrationMsPerFrame: 8
+  LeapfrogStepFraction: 0.03
+  YoshidaStepFraction: 0.06
+  AdaptiveTolerance: 1e-10
+  SofteningAu: 0
   UnitsPerAu: 10
   MinDisplayRadius: 0.05
   RadiusLogScale: 0.07

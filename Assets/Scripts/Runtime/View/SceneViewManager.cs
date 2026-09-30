@@ -123,8 +123,6 @@ namespace PlanetSystem.View
                 var bv = _bodyViews[rec.Id];
                 bv.ApplyPosition(rec.Body, _settings);
                 bv.FaceCamera(_camera);
-                double r = rec.Body.Position.Length;
-                if (r > maxExtentAu) maxExtentAu = r;
 
                 var orbit = _orbitViews[rec.Id];
                 if (_controller.TryGetDrawnOrbit(rec, out var el, out var refPos, out _))
@@ -133,9 +131,12 @@ namespace PlanetSystem.View
                     orbit.SetWidth(rec.Id == _controller.SelectedId ? width * 2f : width);
                     double extent = orbit.Rebuild(el, refPos, _settings);
                     if (extent > maxExtentAu) maxExtentAu = extent;
+                    double r = rec.Body.Position.Length;
+                    if (r > maxExtentAu) maxExtentAu = r;
                 }
                 else
                 {
+                    // Unbound (or the lone central body): no ellipse, and it does not drive the camera framing.
                     orbit.SetVisible(false);
                 }
 
@@ -184,6 +185,8 @@ namespace PlanetSystem.View
             if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 
+            // Bodies move every frame; make sure colliders match the rendered positions before raycasting.
+            UnityEngine.Physics.SyncTransforms();
             var ray = _camera.ScreenPointToRay(mouse.position.ReadValue());
             if (UnityEngine.Physics.Raycast(ray, out var hit, 10000f))
             {

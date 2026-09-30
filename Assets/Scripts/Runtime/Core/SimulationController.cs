@@ -8,9 +8,9 @@ namespace PlanetSystem.Core
     /// <summary>
     /// Owns the <see cref="SimulationState"/> and is the single entry point for adding, editing,
     /// removing and selecting bodies. The view and UI layers only talk to this class and react to its events.
-    /// Time integration will be added here in a later phase.
+    /// Time integration lives in SimulationController.Integration.cs.
     /// </summary>
-    public sealed class SimulationController : MonoBehaviour
+    public sealed partial class SimulationController : MonoBehaviour
     {
         public SimulationSettings Settings { get; private set; }
         public SimulationState State { get; } = new SimulationState();
@@ -39,6 +39,7 @@ namespace PlanetSystem.Core
         public void Initialize(SimulationSettings settings)
         {
             Settings = settings;
+            InitializeIntegration();
         }
 
         public BodyRecord Find(int id)
@@ -206,6 +207,7 @@ namespace PlanetSystem.Core
         /// </summary>
         public BodyRecord AddBody(BodyDefinition def, out string error)
         {
+            if (!EnsureEditable(out error)) return null;
             if (!CanHaveKind(def.Kind, -1, out error)) return null;
             if (!ValidateDefinition(def, out error)) return null;
 
@@ -225,20 +227,27 @@ namespace PlanetSystem.Core
             State.Bodies.Add(body);
             _records.Add(rec);
             State.MoveToCenterOfMass();
+            CaptureInitialConditions();
 
             BodiesChanged?.Invoke();
             return rec;
         }
 
-        /// <summary>Applies an edited definition to an existing body and re-centers the system.</summary>
+        /// <summary>
+        /// Applies an edited definition to an existing body and re-centers the system.
+        /// Purely cosmetic edits (name, color, radius) keep the current state and simulation time;
+        /// any dynamical edit defines new initial conditions and resets the clock to t = 0.
+        /// </summary>
         public bool UpdateBody(int id, BodyDefinition def, out string error)
         {
+            if (!EnsureEditable(out error)) return false;
             var rec = Find(id);
             if (rec == null) { error = "Body not found."; return false; }
             if (def.ReferenceId == id) { error = "A body cannot orbit itself."; return false; }
             if (rec.Body.Kind != def.Kind && !CanHaveKind(def.Kind, id, out error)) return false;
             if (!ValidateDefinition(def, out error)) return false;
 
+            bool dynamical = IsDynamicalChange(rec, def);
             var body = rec.Body;
             body.Name = def.Name;
             body.Kind = def.Kind;
@@ -246,6 +255,12 @@ namespace PlanetSystem.Core
             body.Radius = def.Radius;
             rec.Color = def.Color;
             rec.ReferenceId = def.ReferenceId;
+
+            if (!dynamical)
+            {
+                BodiesChanged?.Invoke();
+                return true;
+            }
 
             if (TryComputeState(def, id, out var p, out var v, out _))
             {
@@ -255,12 +270,38 @@ namespace PlanetSystem.Core
             // A body with no resolvable primary (e.g. the only massive body) keeps its position.
 
             State.MoveToCenterOfMass();
+            CaptureInitialConditions();
             BodiesChanged?.Invoke();
             return true;
         }
 
+        /// <summary>True when the edit changes anything that affects the motion.</summary>
+        private bool IsDynamicalChange(BodyRecord rec, BodyDefinition def)
+        {
+            var current = ToDefinition(rec);
+            if (current.Kind != def.Kind || current.ReferenceId != def.ReferenceId) return true;
+            if (def.Kind == BodyKind.Massive && !Close(current.Mass, def.Mass, 1e-12)) return true;
+            var a = current.Elements;
+            var b = def.Elements;
+            return !Close(a.SemiMajorAxis, b.SemiMajorAxis, 1e-10) ||
+                   Math.Abs(a.Eccentricity - b.Eccentricity) > 1e-10 ||
+                   AngleDiff(a.Inclination, b.Inclination) > 1e-9 ||
+                   AngleDiff(a.LongitudeOfAscendingNode, b.LongitudeOfAscendingNode) > 1e-9 ||
+                   AngleDiff(a.ArgumentOfPericenter, b.ArgumentOfPericenter) > 1e-9 ||
+                   AngleDiff(a.TrueAnomaly, b.TrueAnomaly) > 1e-9;
+        }
+
+        private static bool Close(double a, double b, double rel) => Math.Abs(a - b) <= rel * Math.Max(Math.Abs(a), Math.Abs(b));
+
+        private static double AngleDiff(double a, double b)
+        {
+            double d = Constants.WrapTwoPi(a - b);
+            return Math.Min(d, Constants.TwoPi - d);
+        }
+
         public void RemoveBody(int id)
         {
+            if (!EnsureEditable(out _)) return;
             var rec = Find(id);
             if (rec == null) return;
             _records.Remove(rec);
@@ -271,15 +312,17 @@ namespace PlanetSystem.Core
                 if (r.ReferenceId == id) r.ReferenceId = BodyDefinition.CenterOfMassReference;
 
             State.MoveToCenterOfMass();
+            CaptureInitialConditions();
             if (SelectedId == id) Select(-1);
             BodiesChanged?.Invoke();
         }
 
         public void Clear()
         {
+            StopIntegration();
             _records.Clear();
             State.Bodies.Clear();
-            State.Time = 0.0;
+            CaptureInitialConditions();
             Select(-1);
             BodiesChanged?.Invoke();
         }
