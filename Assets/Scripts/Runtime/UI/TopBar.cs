@@ -98,6 +98,12 @@ namespace PlanetSystem.UI
             if (Time.unscaledTime < _nextRefresh) return;
             _nextRefresh = Time.unscaledTime + 0.1f;
             _clock.text = $"t = {FormatYears(_controller.State.Time)}";
+            // The speed can also change through keyboard shortcuts (F6/F7).
+            if (_speed.value != _controller.SpeedIndex)
+            {
+                _speed.SetValueWithoutNotify(_controller.SpeedIndex);
+                _speed.RefreshShownValue();
+            }
         }
 
         public static string FormatYears(double t)

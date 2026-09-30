@@ -63,6 +63,20 @@ namespace PlanetSystem.Core
         public float CameraPadding = 1.3f;
         [Tooltip("Minimum camera distance in Unity units.")]
         public float CameraMinDistance = 4f;
+        [Tooltip("How fast the camera moves to a newly chosen preset view (1/s). Higher is snappier.")]
+        public float ViewTransitionRate = 6f;
+        [Tooltip("Views 5/6: elevation of the line of sight above the primary's orbital plane, in degrees.")]
+        public float TrackingElevationDeg = 45f;
+
+        [Header("Free-fly camera")]
+        [Tooltip("Look rotation in degrees per pixel of pointer drag.")]
+        public float FlyLookSensitivity = 0.15f;
+        [Tooltip("WASD/QE speed in system radii per second (the system radius is measured when entering free-fly).")]
+        public float FlySpeedFraction = 0.5f;
+        [Tooltip("Speed multiplier while Shift is held (movement and scroll).")]
+        public float FlyBoostMultiplier = 4f;
+        [Tooltip("Distance moved per scroll-wheel notch, in system radii.")]
+        public float FlyDollyFraction = 0.08f;
 
         public static SimulationSettings LoadOrDefault()
         {

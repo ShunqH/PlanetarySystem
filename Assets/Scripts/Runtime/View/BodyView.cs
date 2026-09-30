@@ -23,6 +23,8 @@ namespace PlanetSystem.View
             var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             go.name = $"Body_{name}";
             go.transform.SetParent(parent, false);
+            // Picking is done in screen space (SceneViewManager.PickBody), so no physics collider is needed.
+            Destroy(go.GetComponent<Collider>());
             var view = go.AddComponent<BodyView>();
             view.BodyId = bodyId;
             view._renderer = go.GetComponent<MeshRenderer>();

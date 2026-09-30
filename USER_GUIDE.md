@@ -94,8 +94,65 @@ shows its **live osculating elements**, which is a good way to watch inclination
 oscillate. After stopping, editing a body's orbit or mass defines new initial conditions and resets
 t to 0. Renaming a body or changing its colour or radius does not.
 
+## Camera and keyboard
+
+The app has two interaction modes. **Tab** cycles between them and **Esc** always returns to edit mode.
+Switching mode keeps the current camera position. The active mode, view and keys are shown at the
+bottom left of the screen.
+
+### Shortcuts that work in every mode
+
+| Key | Action |
+|---|---|
+| F1-F4 | Select body 1-4 (in list order) |
+| F5 | Start / stop integration |
+| F6 / F7 | Slower / faster |
+| Tab | Next mode |
+| Esc | Back to edit mode |
+
+On a Mac keyboard the F keys control brightness and volume by default. Hold **fn**, or enable
+"Use F1, F2, etc. keys as standard function keys" in System Settings > Keyboard.
+Shortcuts are ignored while you are typing in a text field.
+
+### Edit mode: preset views
+
+| Key | View |
+|---|---|
+| 1 | Oblique view from above the reference plane (startup view) |
+| 2 | Top view, looking down the z axis (x right, y up) |
+| 3 | Side view along the x axis (y right, z up) |
+| 4 | Side view along the y axis (x right, z up) |
+| 5 | Tracks the primary star: line of sight in its orbital plane, perpendicular to its eccentricity vector |
+| 6 | Tracks the primary star: line of sight along its eccentricity vector |
+
+The camera glides to the chosen view and keeps the whole system in frame. Views 5 and 6 follow the
+orbit of the first massive body in the list, looking down on its orbital plane from 45 degrees with the
+orbit normal pointing up on screen. For a binary this means the camera co-rotates with the binary's
+orbital plane and apsidal line. You can then watch how an outer planet's orbit tilts and precesses
+*relative to the binary*. If the primary is on a near-circular orbit the node line replaces the
+eccentricity vector. If it has no orbit, as for a single star, the reference frame is used instead.
+
+Returning from free-fly leaves the camera where it was until you press 1-6.
+Click a body, or a row in the list, to select it.
+
+### Free-fly mode
+
+The camera behaves like a drone.
+
+| Input | Action |
+|---|---|
+| Drag (mouse or one-finger trackpad press-and-drag) | Look around |
+| W / S | Forward / back along the view direction |
+| A / D | Left / right |
+| Q / E | Down / up |
+| Scroll wheel or two-finger trackpad scroll | Dolly forward / back (a burst of W / S) |
+| Shift | Move faster |
+
+Movement speed is set from the size of the system when you enter free-fly. Moving closer does not
+change the movement or look sensitivity. A click without dragging still selects bodies.
+
 ## Notes
 
 - Rendered body sizes are exaggerated logarithmically so planets stay visible at AU scales.
-- The camera auto-frames the bound orbits; interactive camera controls arrive in a later phase.
-  Bodies that become unbound lose their ellipse and may leave the view.
+- The preset views auto-frame the bound orbits. Bodies that become unbound lose their ellipse and
+  may leave the view.

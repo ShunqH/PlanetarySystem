@@ -1,3 +1,4 @@
+using PlanetSystem.Interaction;
 using PlanetSystem.UI;
 using PlanetSystem.View;
 using UnityEngine;
@@ -50,7 +51,10 @@ namespace PlanetSystem.Core
             var scene = new GameObject("SceneView").AddComponent<SceneViewManager>();
             scene.Initialize(controller, settings, camera, labelCanvas.transform, UIFactory.Font);
 
-            UIRoot.Build(controller, scene);
+            var interaction = gameObject.AddComponent<InteractionController>();
+            interaction.Initialize(controller, scene.CameraController, scene);
+
+            UIRoot.Build(controller, scene, interaction);
 
             if (LoadExampleOnStart) controller.LoadCircumbinaryExample();
         }

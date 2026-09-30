@@ -34,3 +34,9 @@ MonoBehaviour:
   CameraElevationDeg: 35
   CameraPadding: 1.3
   CameraMinDistance: 4
+  ViewTransitionRate: 6
+  TrackingElevationDeg: 45
+  FlyLookSensitivity: 0.15
+  FlySpeedFraction: 0.5
+  FlyBoostMultiplier: 4
+  FlyDollyFraction: 0.08

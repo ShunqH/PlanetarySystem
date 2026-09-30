@@ -1,4 +1,5 @@
 using PlanetSystem.Core;
+using PlanetSystem.Interaction;
 using PlanetSystem.View;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -20,7 +21,7 @@ namespace PlanetSystem.UI
             return canvas;
         }
 
-        public static void Build(SimulationController controller, SceneViewManager scene)
+        public static void Build(SimulationController controller, SceneViewManager scene, InteractionController interaction)
         {
             if (EventSystem.current == null)
             {
@@ -28,6 +29,9 @@ namespace PlanetSystem.UI
                 // InputSystemUIInputModule falls back to the package's default actions when none are assigned.
                 es.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
             }
+            // Keyboard UI navigation would steal WASD / arrows / Enter from the camera (e.g. nudging a
+            // selected slider while flying). Text fields still receive typing.
+            EventSystem.current.sendNavigationEvents = false;
 
             var canvasGo = new GameObject("UICanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = canvasGo.GetComponent<Canvas>();
@@ -42,6 +46,7 @@ namespace PlanetSystem.UI
             BodyListPanel.Create(canvasGo.transform, controller, editor);
             TopBar.Create(canvasGo.transform, controller, editor);
             StatusBar.Create(canvasGo.transform, controller);
+            ModeHud.Create(canvasGo.transform, interaction);
 
             controller.SelectionChanged += id =>
             {

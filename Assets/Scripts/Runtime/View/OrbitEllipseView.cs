@@ -15,6 +15,9 @@ namespace PlanetSystem.View
         private Vec3d[] _buffer;
         private Vector3[] _points;
 
+        /// <summary>World position of the focus the ellipse is drawn around (used for line width).</summary>
+        public Vector3 Center { get; set; }
+
         public static OrbitEllipseView Create(Transform parent, string name, int segments)
         {
             var go = new GameObject($"Orbit_{name}");
