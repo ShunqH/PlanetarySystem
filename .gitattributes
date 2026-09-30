@@ -1,0 +1,19 @@
+# Unity YAML assets: treat as text, merge with Unity's YAMLMerge if configured
+*.unity   text merge=unityyamlmerge eol=lf
+*.prefab  text merge=unityyamlmerge eol=lf
+*.asset   text merge=unityyamlmerge eol=lf
+*.mat     text eol=lf
+*.meta    text eol=lf
+*.cs      text diff=csharp eol=lf
+*.asmdef  text eol=lf
+*.md      text eol=lf
+
+# Binary assets
+*.png  binary
+*.jpg  binary
+*.psd  binary
+*.fbx  binary
+*.ttf  binary
+*.otf  binary
+*.wav  binary
+*.mp3  binary

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e4b0d2f3c5e4a71b9d2e3f4a5b6c7d8, type: 3}
+  m_Name: SimulationSettings
+  m_EditorClassIdentifier: 
+  MaxMassiveBodies: 4
+  MaxTestParticles: 10
+  UnitsPerAu: 10
+  MinDisplayRadius: 0.05
+  RadiusLogScale: 0.07
+  StarMassThreshold: 0.05
+  OrbitSegments: 256
+  OrbitLineWidthFraction: 0.0015
+  GridSpacingAu: 1
+  GridColor: {r: 0.16, g: 0.18, b: 0.23, a: 1}
+  GridAxisColor: {r: 0.34, g: 0.37, b: 0.45, a: 1}
+  CameraElevationDeg: 35
+  CameraPadding: 1.3
+  CameraMinDistance: 4
