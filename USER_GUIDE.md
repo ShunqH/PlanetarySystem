@@ -28,8 +28,12 @@ horizontal grid; inclination is measured from it.
 
 Two kinds of bodies exist:
 
-- **Massive** bodies (stars, giant planets) attract everything. At most 4.
-- **Massless test particles** feel gravity but exert none. At most 10.
+- **Massive** bodies (stars, giant planets) attract everything.
+- **Massless test particles** feel gravity but exert none.
+
+There is no limit on the number of bodies. Past 10 massive bodies or 20 test particles a one-time
+performance warning appears. High speeds may then hit the CPU limit and run slower than requested,
+but the results stay correct. Large systems are integrated on all CPU cores automatically.
 
 ## Editing
 
@@ -55,7 +59,8 @@ The top bar controls the time evolution:
 | **Start / Stop** | Starts or pauses the integration. |
 | **Reset** | Restores the system to its initial conditions and sets t = 0. |
 | **t = …** | Simulated time since the initial conditions. |
-| **Load example** | Polar circumbinary system: an equal-mass eccentric binary (0.5 + 0.5 M☉, a = 1 AU, e = 0.8), a Jupiter-mass planet at 5 AU and a massless planet at 10 AU, both on circular orbits with inc = 90° and Ω = 90°, so their orbit normals are aligned with the binary's eccentricity vector. |
+| **Save** | Stores the current system as a named case (see below). |
+| **Examples ▾** | Opens the list of preset and saved cases to load or delete. |
 | **Clear all** | Start from scratch. |
 
 The demo renders at a fixed 60 frames per second, so each frame advances the system by speed / 60 years.
@@ -93,6 +98,29 @@ Bodies cannot be added, edited or deleted while the integration runs. Selecting 
 shows its **live osculating elements**, which is a good way to watch inclination or eccentricity
 oscillate. After stopping, editing a body's orbit or mass defines new initial conditions and resets
 t to 0. Renaming a body or changing its colour or radius does not.
+
+## Examples and saved cases
+
+**Examples ▾** lists the built-in presets first, then your saved cases. Click a row to see its
+description, then **Load** it or **Delete** it. Presets cannot be deleted. Loading replaces the current
+system, and you are asked first if it has unsaved changes. A loaded case becomes the new initial
+conditions (t = 0). It may also set the speed, and a saved case also restores its integrator.
+
+| Preset | Contents |
+|---|---|
+| Solar System | The Sun and the eight planets at J2000 (JPL approximate elements), all massive, with real masses and radii, plus a massless Halley-like comet (e = 0.967, retrograde). Speed 1 yr/s. |
+| Kozai–Lidov | A test particle at 1 AU around a 1 M☉ star, inclined 65° to a 1 M☉ companion on a circular orbit at 15 AU. The eccentricity grows to about 0.84 while the inclination falls to about 39°, then both cycle back. The first maximum comes after about 1350 yr and each cycle takes about 2000 yr. Speed 100 yr/s. |
+| Polar Planets | An equal-mass eccentric binary (0.5 + 0.5 M☉, a = 1 AU, e = 0.8), a Jupiter-mass planet at 5 AU and a massless planet at 10 AU. Both planets are on circular polar orbits (inc = 90°, Ω = 90°) aligned with the binary's eccentricity vector. Loaded at startup. |
+
+**Save** works like a game save. It stores the exact positions, velocities, masses, radii and colours
+of all bodies, plus the integrator and speed. Saving after a run stores the evolved state. You are asked
+for a name, "Case 1" by default. An existing name can be overwritten, but preset names are reserved.
+Save and Examples are disabled while the integration runs.
+
+Saved cases are kept in `saved_cases.json` in the app's data folder. On macOS that is
+`~/Library/Application Support/<Company Name>/PlanetSystem/`. It is plain JSON, so cases can be
+backed up, shared or written by hand. A body may give `"elements": {"a", "e", "inc", "Omega",
+"omega", "f"}`, with angles in degrees, instead of a position and velocity.
 
 ## Camera and keyboard
 
@@ -157,6 +185,7 @@ change the movement or look sensitivity. A click without dragging still selects 
 
 ## Notes
 
-- Rendered body sizes are exaggerated logarithmically so planets stay visible at AU scales.
+- Rendered body sizes are exaggerated logarithmically so planets stay visible at AU scales. Bodies
+  are also never drawn smaller than a few pixels, so they remain visible when zoomed far out.
 - The preset views auto-frame the bound orbits. Bodies that become unbound lose their ellipse and
   may leave the view.

@@ -49,30 +49,39 @@ namespace PlanetSystem.Core
         }
 
         // ------------------------------------------------------------------
-        // Limits
+        // Body count warnings (there is no hard limit)
         // ------------------------------------------------------------------
 
-        /// <summary>Checks whether a body of the given kind can be added (or an existing one converted to it).</summary>
-        public bool CanHaveKind(BodyKind kind, int excludeId, out string reason)
+        /// <summary>Raised with a message when the body count crosses a performance warning threshold.</summary>
+        public event Action<string> BodyCountWarning;
+
+        private bool _massiveWarned, _testWarned;
+        private bool _suppressCountWarnings;
+
+        /// <summary>Warns once per threshold crossing; the warning re-arms when the count drops back below.</summary>
+        private void CheckBodyCountWarnings()
         {
-            int massive = 0, test = 0;
-            foreach (var r in _records)
+            if (_suppressCountWarnings) return;
+            int massive = MassiveCount, test = TestParticleCount;
+            if (massive <= Settings.MassiveWarningThreshold) _massiveWarned = false;
+            if (test <= Settings.TestParticleWarningThreshold) _testWarned = false;
+
+            if (massive > Settings.MassiveWarningThreshold && !_massiveWarned)
             {
-                if (r.Id == excludeId) continue;
-                if (r.Body.IsMassive) massive++; else test++;
+                _massiveWarned = true;
+                BodyCountWarning?.Invoke(
+                    $"The system now has {massive} massive bodies (more than {Settings.MassiveWarningThreshold}).\n\n" +
+                    "Gravity between massive bodies costs O(N²) per step, so high speeds may hit the CPU limit and run " +
+                    "slower than requested. The results stay correct, and the status bar shows the speed actually reached.");
             }
-            if (kind == BodyKind.Massive && massive >= Settings.MaxMassiveBodies)
+            if (test > Settings.TestParticleWarningThreshold && !_testWarned)
             {
-                reason = $"Limit reached: at most {Settings.MaxMassiveBodies} massive bodies.";
-                return false;
+                _testWarned = true;
+                BodyCountWarning?.Invoke(
+                    $"The system now has {test} massless test particles (more than {Settings.TestParticleWarningThreshold}).\n\n" +
+                    "Each one adds work proportional to the number of massive bodies, and the view gets crowded. " +
+                    "High speeds may run slower than requested.");
             }
-            if (kind == BodyKind.TestParticle && test >= Settings.MaxTestParticles)
-            {
-                reason = $"Limit reached: at most {Settings.MaxTestParticles} test particles.";
-                return false;
-            }
-            reason = null;
-            return true;
         }
 
         // ------------------------------------------------------------------
@@ -208,7 +217,6 @@ namespace PlanetSystem.Core
         public BodyRecord AddBody(BodyDefinition def, out string error)
         {
             if (!EnsureEditable(out error)) return null;
-            if (!CanHaveKind(def.Kind, -1, out error)) return null;
             if (!ValidateDefinition(def, out error)) return null;
 
             var body = new Body(_nextId++, def.Name, def.Kind, def.Mass, def.Radius);
@@ -230,6 +238,7 @@ namespace PlanetSystem.Core
             CaptureInitialConditions();
 
             BodiesChanged?.Invoke();
+            CheckBodyCountWarnings();
             return rec;
         }
 
@@ -244,7 +253,6 @@ namespace PlanetSystem.Core
             var rec = Find(id);
             if (rec == null) { error = "Body not found."; return false; }
             if (def.ReferenceId == id) { error = "A body cannot orbit itself."; return false; }
-            if (rec.Body.Kind != def.Kind && !CanHaveKind(def.Kind, id, out error)) return false;
             if (!ValidateDefinition(def, out error)) return false;
 
             bool dynamical = IsDynamicalChange(rec, def);
@@ -272,6 +280,7 @@ namespace PlanetSystem.Core
             State.MoveToCenterOfMass();
             CaptureInitialConditions();
             BodiesChanged?.Invoke();
+            CheckBodyCountWarnings();
             return true;
         }
 
@@ -315,6 +324,7 @@ namespace PlanetSystem.Core
             CaptureInitialConditions();
             if (SelectedId == id) Select(-1);
             BodiesChanged?.Invoke();
+            CheckBodyCountWarnings();
         }
 
         public void Clear()
@@ -381,7 +391,8 @@ namespace PlanetSystem.Core
             }
             else
             {
-                def.Name = $"Planet {(char)('a' + Math.Max(0, total - 2))}";
+                int n = Math.Max(0, total - 2);
+                def.Name = n < 26 ? $"Planet {(char)('a' + n)}" : $"Body {total + 1}";
                 def.Kind = BodyKind.TestParticle;
                 def.Mass = 0.0;
                 def.Radius = Constants.JupiterRadiusInAu;
@@ -389,49 +400,8 @@ namespace PlanetSystem.Core
                 def.Elements = new OrbitalElements { SemiMajorAxis = 1.0, Eccentricity = 0.05 };
             }
 
-            if (!CanHaveKind(def.Kind, -1, out _))
-            {
-                def.Kind = def.Kind == BodyKind.Massive ? BodyKind.TestParticle : BodyKind.Massive;
-                if (def.Kind == BodyKind.Massive && def.Mass <= 0.0) def.Mass = Constants.JupiterMassInSolar;
-            }
             return def;
         }
 
-        /// <summary>
-        /// Loads the example system: an equal-mass eccentric binary (0.5 + 0.5 Msun, a = 1 AU, e = 0.8) with
-        /// a Jupiter-mass planet at 5 AU and a massless planet at 10 AU, both on circular polar orbits
-        /// (inc = 90 deg, Omega = 90 deg). With the binary's eccentricity vector along +x, both planetary
-        /// orbit normals point along +x as well, i.e. the planets are polar-aligned with the binary.
-        /// All angles not listed are zero; the planets' elements are relative to the barycenter of the
-        /// massive bodies interior to them.
-        /// </summary>
-        public void LoadCircumbinaryExample()
-        {
-            Clear();
-            double polar = Constants.DegToRad(90.0);
-            AddBody(new BodyDefinition
-            {
-                Name = "Star A", Kind = BodyKind.Massive, Mass = 0.5, Radius = 0.5 * Constants.SolarRadiusInAu,
-                Color = Palette.Pick(0),
-            }, out _);
-            AddBody(new BodyDefinition
-            {
-                Name = "Star B", Kind = BodyKind.Massive, Mass = 0.5, Radius = 0.5 * Constants.SolarRadiusInAu,
-                Color = Palette.Pick(1), ReferenceId = BodyDefinition.CenterOfMassReference,
-                Elements = new OrbitalElements { SemiMajorAxis = 1.0, Eccentricity = 0.8 },
-            }, out _);
-            AddBody(new BodyDefinition
-            {
-                Name = "Planet b", Kind = BodyKind.Massive, Mass = Constants.JupiterMassInSolar, Radius = Constants.JupiterRadiusInAu,
-                Color = Palette.Pick(3), ReferenceId = BodyDefinition.CenterOfMassReference,
-                Elements = new OrbitalElements { SemiMajorAxis = 5.0, Inclination = polar, LongitudeOfAscendingNode = polar },
-            }, out _);
-            AddBody(new BodyDefinition
-            {
-                Name = "Planet c", Kind = BodyKind.TestParticle, Radius = Constants.EarthRadiusInAu,
-                Color = Palette.Pick(6), ReferenceId = BodyDefinition.CenterOfMassReference,
-                Elements = new OrbitalElements { SemiMajorAxis = 10.0, Inclination = polar, LongitudeOfAscendingNode = polar },
-            }, out _);
-        }
     }
 }

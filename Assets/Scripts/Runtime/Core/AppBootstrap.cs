@@ -14,7 +14,7 @@ namespace PlanetSystem.Core
         [Tooltip("Optional explicit settings asset. Falls back to Resources/Settings/SimulationSettings.")]
         public SimulationSettings SettingsOverride;
 
-        [Tooltip("Populate the scene with a small circumbinary example on start.")]
+        [Tooltip("Load the built-in \"Polar Planets\" example on start.")]
         public bool LoadExampleOnStart = true;
 
         private void Awake()
@@ -54,9 +54,12 @@ namespace PlanetSystem.Core
             var interaction = gameObject.AddComponent<InteractionController>();
             interaction.Initialize(controller, scene.CameraController, scene);
 
-            UIRoot.Build(controller, scene, interaction);
+            var library = new ScenarioLibrary();
+            library.Load();
 
-            if (LoadExampleOnStart) controller.LoadCircumbinaryExample();
+            UIRoot.Build(controller, scene, interaction, library);
+
+            if (LoadExampleOnStart) controller.LoadScenario(Data.BuiltInScenarios.PolarPlanets());
         }
     }
 }

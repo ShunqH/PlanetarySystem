@@ -21,7 +21,8 @@ namespace PlanetSystem.UI
             return canvas;
         }
 
-        public static void Build(SimulationController controller, SceneViewManager scene, InteractionController interaction)
+        public static void Build(SimulationController controller, SceneViewManager scene, InteractionController interaction,
+            ScenarioLibrary library)
         {
             if (EventSystem.current == null)
             {
@@ -42,9 +43,24 @@ namespace PlanetSystem.UI
             scaler.referenceResolution = new Vector2(1600f, 900f);
             scaler.matchWidthOrHeight = 0.5f;
 
+            // Overlay canvas for pop-ups and dialogs, drawn above all panels.
+            var overlayGo = new GameObject("OverlayCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            var overlay = overlayGo.GetComponent<Canvas>();
+            overlay.renderMode = RenderMode.ScreenSpaceOverlay;
+            overlay.sortingOrder = 100;
+            var overlayScaler = overlayGo.GetComponent<CanvasScaler>();
+            overlayScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            overlayScaler.referenceResolution = scaler.referenceResolution;
+            overlayScaler.matchWidthOrHeight = scaler.matchWidthOrHeight;
+
             var editor = BodyEditorPanel.Create(canvasGo.transform, controller, scene);
             BodyListPanel.Create(canvasGo.transform, controller, editor);
-            TopBar.Create(canvasGo.transform, controller, editor);
+            var menu = ScenarioMenu.Create(overlayGo.transform, controller, library, editor);
+            TopBar.Create(canvasGo.transform, controller, editor, library, menu);
+            ModalDialog.Create(overlayGo.transform);
+
+            controller.BodyCountWarning += message => ModalDialog.ShowMessage("Performance warning", message);
+            if (library.LoadProblem != null) ModalDialog.ShowMessage("Saved cases", library.LoadProblem);
             StatusBar.Create(canvasGo.transform, controller);
             ModeHud.Create(canvasGo.transform, interaction);
 

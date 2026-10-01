@@ -11,7 +11,7 @@ namespace PlanetSystem.UI
         private SimulationController _controller;
         private BodyEditorPanel _editor;
         private RectTransform _root;
-        private RectTransform _list;
+        private ScrollList _list;
         private Button _addButton;
         private Text _limits;
         private readonly List<GameObject> _rows = new List<GameObject>();
@@ -41,24 +41,24 @@ namespace PlanetSystem.UI
             UIFactory.CreateLabel(_root, "Bodies", 17, FontStyle.Bold);
             _limits = UIFactory.CreateLabel(_root, "", 12, color: UIFactory.MutedColor);
             _addButton = UIFactory.CreateButton(_root, "+ Add star", () => _editor.OpenAdd());
-            _list = UIFactory.CreateGroup(_root, "List", 3f);
+            // Scrolls once the list is taller than the space between the toolbar and the bottom HUD.
+            _list = ScrollList.Create(_root, 560f);
         }
 
         private void Rebuild()
         {
-            foreach (var row in _rows) Destroy(row);
+            // Deactivate first: Destroy is deferred, and inactive rows are ignored by the layout refresh below.
+            foreach (var row in _rows) { row.SetActive(false); Destroy(row); }
             _rows.Clear();
 
-            var s = _controller.Settings;
-            _limits.text = $"Massive {_controller.MassiveCount}/{s.MaxMassiveBodies}   ·   Test particles {_controller.TestParticleCount}/{s.MaxTestParticles}";
+            _limits.text = $"{_controller.MassiveCount} massive   ·   {_controller.TestParticleCount} test particles";
             UIFactory.SetButtonText(_addButton, _controller.Bodies.Count == 0 ? "+ Add star" : "+ Add body");
-            bool anyRoom = _controller.CanHaveKind(Physics.BodyKind.Massive, -1, out _) || _controller.CanHaveKind(Physics.BodyKind.TestParticle, -1, out _);
-            _addButton.interactable = anyRoom && !_controller.IsRunning;
+            _addButton.interactable = !_controller.IsRunning;
 
             foreach (var rec in _controller.Bodies)
             {
                 int id = rec.Id;
-                var row = UIFactory.CreateRow(_list, 28f, 8f);
+                var row = UIFactory.CreateRow(_list.Content, 28f, 8f);
                 var bg = row.gameObject.AddComponent<Image>();
                 bg.color = id == _controller.SelectedId ? UIFactory.HighlightColor : new Color(1f, 1f, 1f, 0.04f);
                 var btn = row.gameObject.AddComponent<Button>();
@@ -77,6 +77,7 @@ namespace PlanetSystem.UI
                 UIFactory.CreateLabel(row, tag, 11, color: UIFactory.MutedColor, anchor: TextAnchor.MiddleRight, width: 90f);
                 _rows.Add(row.gameObject);
             }
+            _list.Refresh();
         }
 
         private static string FormatMass(double msun)

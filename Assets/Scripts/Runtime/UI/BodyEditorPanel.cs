@@ -427,14 +427,6 @@ namespace PlanetSystem.UI
         {
             if (_suppress) return;
             var kind = index == 0 ? BodyKind.Massive : BodyKind.TestParticle;
-            if (!_controller.CanHaveKind(kind, _editId, out var reason))
-            {
-                _error.text = reason;
-                _suppress = true;
-                _kind.SetValueWithoutNotify(_def.Kind == BodyKind.Massive ? 0 : 1);
-                _suppress = false;
-                return;
-            }
             _def.Kind = kind;
             if (kind == BodyKind.Massive && _def.Mass <= 0.0) _def.Mass = Constants.JupiterMassInSolar;
             _massRow.SetActive(kind == BodyKind.Massive);

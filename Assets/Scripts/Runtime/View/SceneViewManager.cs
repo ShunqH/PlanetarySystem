@@ -150,13 +150,14 @@ namespace PlanetSystem.View
             foreach (var rec in _controller.Bodies)
             {
                 var bv = _bodyViews[rec.Id];
-                bv.FaceCamera(_camera);
+                bv.UpdateForCamera(_camera, _settings);
                 var orbit = _orbitViews[rec.Id];
                 float w = LineWidth(camPos, orbit.Center);
                 orbit.SetWidth(rec.Id == _controller.SelectedId ? w * 2f : w);
                 _labels[rec.Id].Follow(_camera, bv.transform.position, 12f);
             }
             _previewOrbit.SetWidth(LineWidth(camPos, _previewOrbit.Center));
+            if (_previewBody.gameObject.activeSelf) _previewBody.UpdateForCamera(_camera, _settings);
         }
 
         /// <summary>World-space line width that looks roughly constant on screen at the orbit's distance.</summary>
@@ -212,7 +213,7 @@ namespace PlanetSystem.View
                 var bv = kv.Value;
                 var center = _camera.WorldToScreenPoint(bv.transform.position);
                 if (center.z <= 0f) continue;
-                var edge = _camera.WorldToScreenPoint(bv.transform.position + _camera.transform.right * bv.DisplayRadiusUnits);
+                var edge = _camera.WorldToScreenPoint(bv.transform.position + _camera.transform.right * bv.RenderedRadius);
                 float radiusPx = Mathf.Max(PickRadiusPixels, Vector2.Distance(center, edge));
                 float d = Vector2.Distance(screenPosition, center);
                 if (d > radiusPx) continue;

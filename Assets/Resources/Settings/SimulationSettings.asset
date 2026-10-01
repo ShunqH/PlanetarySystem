@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e4b0d2f3c5e4a71b9d2e3f4a5b6c7d8, type: 3}
   m_Name: SimulationSettings
   m_EditorClassIdentifier: 
-  MaxMassiveBodies: 4
-  MaxTestParticles: 10
+  MassiveWarningThreshold: 10
+  TestParticleWarningThreshold: 20
   TargetFrameRate: 60
   DefaultSpeed: 1
   DefaultIntegrator: 0
@@ -25,6 +25,8 @@ MonoBehaviour:
   UnitsPerAu: 10
   MinDisplayRadius: 0.05
   RadiusLogScale: 0.07
+  MinBodyPixelRadius: 3
+  MinStarPixelRadius: 5
   StarMassThreshold: 0.05
   OrbitSegments: 256
   OrbitLineWidthFraction: 0.0015
