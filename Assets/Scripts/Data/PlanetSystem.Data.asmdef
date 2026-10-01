@@ -1,11 +1,8 @@
 {
-    "name": "PlanetSystem.Runtime",
-    "rootNamespace": "PlanetSystem",
+    "name": "PlanetSystem.Data",
+    "rootNamespace": "PlanetSystem.Data",
     "references": [
-        "PlanetSystem.Physics",
-        "PlanetSystem.Data",
-        "Unity.InputSystem",
-        "UnityEngine.UI"
+        "PlanetSystem.Physics"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -15,5 +12,5 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
-    "noEngineReferences": false
+    "noEngineReferences": true
 }

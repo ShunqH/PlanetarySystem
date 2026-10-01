@@ -7,8 +7,8 @@ using UnityEngine.UI;
 namespace PlanetSystem.UI
 {
     /// <summary>
-    /// Top toolbar: integrator choice, time acceleration, start/stop, reset, simulation clock and
-    /// scenario actions. The integrator can only be changed while stopped.
+    /// Top toolbar: integrator choice, time acceleration, start/stop, reset, simulation clock, and the
+    /// case actions Save / Examples / Clear all. The integrator, Save and Examples are disabled while running.
     /// </summary>
     public sealed class TopBar : MonoBehaviour
     {
@@ -21,9 +21,14 @@ namespace PlanetSystem.UI
         private Button _run;
         private Image _runImage;
         private Text _clock;
+        private Button _save;
+        private Button _examples;
+        private ScenarioLibrary _library;
+        private ScenarioMenu _menu;
         private float _nextRefresh;
 
-        public static TopBar Create(Transform canvas, SimulationController controller, BodyEditorPanel editor)
+        public static TopBar Create(Transform canvas, SimulationController controller, BodyEditorPanel editor,
+            ScenarioLibrary library, ScenarioMenu menu)
         {
             var root = UIFactory.CreateRect(canvas, "TopBar");
             root.anchorMin = new Vector2(0f, 1f);
@@ -44,6 +49,8 @@ namespace PlanetSystem.UI
             var bar = root.gameObject.AddComponent<TopBar>();
             bar._controller = controller;
             bar._editor = editor;
+            bar._library = library;
+            bar._menu = menu;
             bar.Build(root);
             controller.RunStateChanged += bar.RefreshRunState;
             bar.RefreshRunState();
@@ -73,8 +80,9 @@ namespace PlanetSystem.UI
 
             _clock = UIFactory.CreateLabel(root, "t = 0 yr", 15, FontStyle.Bold, TextAnchor.MiddleCenter);
 
-            UIFactory.CreateButton(root, "Load example", () => { _editor.Close(); _controller.LoadCircumbinaryExample(); },
-                UIFactory.NeutralButtonColor, width: 112f, fontSize: 13);
+            _save = UIFactory.CreateButton(root, "Save", SaveCurrent, UIFactory.NeutralButtonColor, width: 66f, fontSize: 13);
+            _examples = UIFactory.CreateButton(root, "Examples ▾", () => _menu.Toggle(), UIFactory.NeutralButtonColor,
+                width: 104f, fontSize: 13);
             UIFactory.CreateButton(root, "Clear all", () => { _editor.Close(); _controller.Clear(); },
                 UIFactory.DangerColor, width: 84f, fontSize: 13);
         }
@@ -91,6 +99,39 @@ namespace PlanetSystem.UI
             UIFactory.SetButtonText(_run, running ? "Stop" : "Start");
             _runImage.color = running ? UIFactory.DangerColor : StartColor;
             _integrator.interactable = !running;
+            _save.interactable = !running;
+            _examples.interactable = !running;
+        }
+
+        /// <summary>Asks for a name, then stores the current system in the case library.</summary>
+        private void SaveCurrent()
+        {
+            if (_controller.IsRunning) return;
+            if (_controller.Bodies.Count == 0)
+            {
+                ModalDialog.ShowMessage("Nothing to save", "Add at least one body before saving a case.");
+                return;
+            }
+            _menu.Close();
+            ModalDialog.ShowPrompt("Save case",
+                "Saves the current positions, velocities and settings of all bodies. Saved cases appear under Examples.",
+                _library.SuggestName(), ValidateName, name =>
+                {
+                    string error = _library.Save(_controller.CaptureScenario(name));
+                    if (error != null) ModalDialog.ShowMessage("Could not save", error);
+                    else _controller.MarkSaved();
+                });
+        }
+
+        private PromptCheck ValidateName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return new PromptCheck { Ok = false, Message = "Enter a name.", ConfirmLabel = "Save" };
+            if (_library.IsBuiltInName(name))
+                return new PromptCheck { Ok = false, Message = $"\"{name}\" is a built-in example name.", ConfirmLabel = "Save" };
+            if (_library.FindSaved(name) != null)
+                return new PromptCheck { Ok = true, Message = "A saved case with this name exists and will be replaced.", ConfirmLabel = "Overwrite" };
+            return new PromptCheck { Ok = true, Message = "", ConfirmLabel = "Save" };
         }
 
         private void Update()
@@ -98,7 +139,12 @@ namespace PlanetSystem.UI
             if (Time.unscaledTime < _nextRefresh) return;
             _nextRefresh = Time.unscaledTime + 0.1f;
             _clock.text = $"t = {FormatYears(_controller.State.Time)}";
-            // The speed can also change through keyboard shortcuts (F6/F7).
+            // Loading a case can change the integrator; the speed also changes through F6/F7.
+            if (_integrator.value != _controller.IntegratorIndex)
+            {
+                _integrator.SetValueWithoutNotify(_controller.IntegratorIndex);
+                _integrator.RefreshShownValue();
+            }
             if (_speed.value != _controller.SpeedIndex)
             {
                 _speed.SetValueWithoutNotify(_controller.SpeedIndex);

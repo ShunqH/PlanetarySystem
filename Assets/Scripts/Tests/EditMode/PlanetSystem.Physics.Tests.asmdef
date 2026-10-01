@@ -3,6 +3,7 @@
     "rootNamespace": "PlanetSystem.Physics.Tests",
     "references": [
         "PlanetSystem.Physics",
+        "PlanetSystem.Data",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

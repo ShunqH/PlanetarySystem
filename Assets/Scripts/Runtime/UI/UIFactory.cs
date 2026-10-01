@@ -90,10 +90,10 @@ namespace PlanetSystem.UI
             return rt;
         }
 
-        public static void CreateSpacer(Transform parent, float height)
+        public static LayoutElement CreateSpacer(Transform parent, float height)
         {
             var rt = CreateRect(parent, "Spacer");
-            SetLayout(rt.gameObject, preferredHeight: height);
+            return SetLayout(rt.gameObject, preferredHeight: height);
         }
 
         public static LayoutElement SetLayout(GameObject go, float preferredWidth = -1f, float preferredHeight = -1f,

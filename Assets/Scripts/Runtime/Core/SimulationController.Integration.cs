@@ -160,6 +160,7 @@ namespace PlanetSystem.Core
         /// <summary>Records the current state as the initial conditions and resets the clock.</summary>
         private void CaptureInitialConditions()
         {
+            if (!_loadingScenario) HasUnsavedChanges = _records.Count > 0;
             _initial.Clear();
             foreach (var rec in _records) _initial[rec.Id] = (rec.Body.Position, rec.Body.Velocity);
             State.Time = 0.0;

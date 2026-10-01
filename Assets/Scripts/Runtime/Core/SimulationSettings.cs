@@ -9,11 +9,11 @@ namespace PlanetSystem.Core
     [CreateAssetMenu(fileName = "SimulationSettings", menuName = "PlanetSystem/Simulation Settings")]
     public sealed class SimulationSettings : ScriptableObject
     {
-        [Header("Body limits")]
-        [Tooltip("Maximum number of massive (gravitating) bodies.")]
-        public int MaxMassiveBodies = 4;
-        [Tooltip("Maximum number of massless test particles.")]
-        public int MaxTestParticles = 10;
+        [Header("Body count warnings")]
+        [Tooltip("Show a performance warning once the number of massive bodies exceeds this. There is no hard limit.")]
+        public int MassiveWarningThreshold = 10;
+        [Tooltip("Show a performance warning once the number of test particles exceeds this. There is no hard limit.")]
+        public int TestParticleWarningThreshold = 20;
 
         [Header("Time integration")]
         [Tooltip("Target rendering frame rate. VSync is disabled so this is honoured exactly.")]
@@ -40,6 +40,10 @@ namespace PlanetSystem.Core
         public float MinDisplayRadius = 0.05f;
         [Tooltip("Extra rendered radius per decade of physical radius, measured in Earth radii.")]
         public float RadiusLogScale = 0.07f;
+        [Tooltip("Planets are never drawn smaller than this radius on screen, in pixels.")]
+        public float MinBodyPixelRadius = 3f;
+        [Tooltip("Stars are never drawn smaller than this radius on screen, in pixels.")]
+        public float MinStarPixelRadius = 5f;
         [Tooltip("Bodies at or above this mass (Msun) are rendered as self-luminous stars.")]
         public float StarMassThreshold = 0.05f;
 

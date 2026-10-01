@@ -36,6 +36,22 @@ namespace PlanetSystem.Physics
 
         public bool HasCollision => CollisionA >= 0;
 
+        /// <summary>Cached parallel gravity job (see <see cref="Gravity"/>).</summary>
+        internal Gravity.Kernel ParallelKernel;
+
+        private readonly object _collisionLock = new object();
+
+        /// <summary>Records a colliding pair if none has been recorded yet. Thread-safe.</summary>
+        public void ReportCollision(int a, int b)
+        {
+            lock (_collisionLock)
+            {
+                if (CollisionA >= 0) return;
+                CollisionA = Math.Min(a, b);
+                CollisionB = Math.Max(a, b);
+            }
+        }
+
         public void ClearCollision()
         {
             CollisionA = -1;

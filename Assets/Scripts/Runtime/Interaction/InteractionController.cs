@@ -80,7 +80,8 @@ namespace PlanetSystem.Interaction
 
         private void Update()
         {
-            bool typing = IsTyping();
+            // A modal dialog owns the keyboard (Enter / Esc) and blocks the scene.
+            bool typing = IsTyping() || UI.ModalDialog.OwnsKeyboard;
             _camera.KeyboardEnabled = !typing;
             _camera.ScrollEnabled = !PointerOverUI();
 
