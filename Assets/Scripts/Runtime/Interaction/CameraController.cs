@@ -50,6 +50,8 @@ namespace PlanetSystem.Interaction
         private Vector3 _flyUp = Vector3.up;
         private float _flyScale = 5f;
         private Vector2 _pendingLook;
+        /// <summary>Preset the free-fly camera is gliding to after pressing 1-6, or Custom when not gliding.</summary>
+        private CameraView _flyGlide = CameraView.Custom;
 
         public CameraView View { get; private set; } = CameraView.Oblique;
         public bool IsFreeFly { get; private set; }
@@ -79,25 +81,41 @@ namespace PlanetSystem.Interaction
         /// <summary>Radius (Unity units) around the origin that the edit-state views keep in frame.</summary>
         public void SetFitRadius(float radiusUnits) => _fitRadius = Mathf.Max(0.1f, radiusUnits);
 
-        /// <summary>Switches to a preset view (edit state only). The camera moves there smoothly.</summary>
+        /// <summary>
+        /// Moves the camera smoothly to a preset view.
+        /// Edit state: the view becomes active and is held (views 5/6 keep tracking).
+        /// Free-fly: the camera glides to a one-off snapshot of that view and flying continues from there,
+        /// with the view's up axis as the new horizon. Any movement or look input ends the glide early.
+        /// </summary>
         public void SetView(CameraView view)
         {
-            if (IsFreeFly || view == CameraView.Custom) return;
-            if (View == CameraView.Custom)
+            if (view == CameraView.Custom) return;
+            if (IsFreeFly)
             {
-                // Coming from a free-fly pose: express it as an orbit pose without any jump.
-                var t = _camera.transform;
-                _rotation = t.rotation;
-                _distance = Mathf.Max(0.1f, t.position.magnitude);
-                _target = t.position + t.forward * _distance;
+                CaptureOrbitPoseFromTransform();
+                ComputeView(view, out _, out _, out _flyUp);
+                _flyScale = _fitRadius;
+                _flyGlide = view;
+                return;
             }
+            if (View == CameraView.Custom) CaptureOrbitPoseFromTransform();
             View = view;
+        }
+
+        /// <summary>Expresses the current camera transform as an orbit pose (target, rotation, distance) without any jump.</summary>
+        private void CaptureOrbitPoseFromTransform()
+        {
+            var t = _camera.transform;
+            _rotation = t.rotation;
+            _distance = Mathf.Max(0.1f, t.position.magnitude);
+            _target = t.position + t.forward * _distance;
         }
 
         public void EnterFreeFly()
         {
             if (IsFreeFly) return;
             IsFreeFly = true;
+            _flyGlide = CameraView.Custom;
             _flyUp = _viewUp;
             _flyScale = _fitRadius;
             _pendingLook = Vector2.zero;
@@ -111,6 +129,7 @@ namespace PlanetSystem.Interaction
         {
             if (!IsFreeFly) return;
             IsFreeFly = false;
+            _flyGlide = CameraView.Custom;
             _viewUp = _flyUp;
             View = CameraView.Custom;
         }
@@ -133,6 +152,7 @@ namespace PlanetSystem.Interaction
                     case CameraView.AlongY: return "4  Along y";
                     case CameraView.TrackPerpendicular: return $"5  Tracking {PrimaryName()}, ⊥ e";
                     case CameraView.TrackPericenter: return $"6  Tracking {PrimaryName()}, along e";
+                    case CameraView.Custom when IsFreeFly: return "free";
                     default: return "Custom (press 1-6 for a preset)";
                 }
             }
@@ -151,13 +171,29 @@ namespace PlanetSystem.Interaction
 
         private void FollowView(float dt)
         {
-            ComputeView(View, out var target, out var rotation, out var up);
-            _viewUp = up;
+            _viewUp = GlideTowards(View, dt);
+        }
+
+        /// <summary>One smoothing step of the orbit pose toward a preset view. Returns the view's up axis.</summary>
+        private Vector3 GlideTowards(CameraView view, float dt)
+        {
+            ComputeView(view, out var target, out var rotation, out var up);
             float a = 1f - Mathf.Exp(-_settings.ViewTransitionRate * dt);
             _target = Vector3.Lerp(_target, target, a);
             _rotation = Quaternion.Slerp(_rotation, rotation, a);
             _distance = Mathf.Lerp(_distance, FitDistance(_fitRadius), a);
             ApplyOrbitPose();
+            return up;
+        }
+
+        /// <summary>True once the orbit pose is visually indistinguishable from the preset.</summary>
+        private bool GlideSettled(CameraView view)
+        {
+            ComputeView(view, out var target, out var rotation, out _);
+            float d = FitDistance(_fitRadius);
+            return Quaternion.Angle(_rotation, rotation) < 0.05f &&
+                   Mathf.Abs(_distance - d) < 1e-3f * d &&
+                   (_target - target).magnitude < 1e-3f * d;
         }
 
         private void ApplyOrbitPose()
@@ -170,6 +206,21 @@ namespace PlanetSystem.Interaction
         private void FlyUpdate(float dt)
         {
             var t = _camera.transform;
+
+            // Gliding to a preset (keys 1-6): continue until settled or until the user takes over.
+            if (_flyGlide != CameraView.Custom)
+            {
+                if (UserIsFlying())
+                {
+                    _flyGlide = CameraView.Custom;
+                }
+                else
+                {
+                    GlideTowards(_flyGlide, dt);
+                    if (GlideSettled(_flyGlide)) _flyGlide = CameraView.Custom;
+                    return;
+                }
+            }
 
             // Look: yaw around the inherited up axis, pitch around the camera's right axis, no roll.
             if (_pendingLook != Vector2.zero)
@@ -213,9 +264,21 @@ namespace PlanetSystem.Interaction
             }
         }
 
+        /// <summary>Any look, movement or scroll input this frame.</summary>
+        private bool UserIsFlying()
+        {
+            if (_pendingLook != Vector2.zero) return true;
+            var kb = Keyboard.current;
+            if (kb != null && KeyboardEnabled &&
+                (kb.wKey.isPressed || kb.aKey.isPressed || kb.sKey.isPressed || kb.dKey.isPressed ||
+                 kb.qKey.isPressed || kb.eKey.isPressed)) return true;
+            var mouse = Mouse.current;
+            return mouse != null && ScrollEnabled && Mathf.Abs(mouse.scroll.ReadValue().y) > 0f;
+        }
+
         private void UpdateClipPlanes()
         {
-            if (IsFreeFly || View == CameraView.Custom)
+            if ((IsFreeFly && _flyGlide == CameraView.Custom) || (!IsFreeFly && View == CameraView.Custom))
             {
                 float far = Mathf.Max(1000f, 60f * _fitRadius + 4f * _camera.transform.position.magnitude);
                 _camera.nearClipPlane = Mathf.Max(0.002f, far * 1e-6f);

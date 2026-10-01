@@ -14,7 +14,7 @@ namespace PlanetSystem.UI
 
         private const string GlobalKeys = "F1-F4 select · F5 start/stop · F6/F7 slower/faster · Tab next mode · Esc edit mode";
         private const string EditKeys = "1 oblique · 2 top · 3 along x · 4 along y · 5/6 track primary (⊥ e / along e) · click to select";
-        private const string FlyKeys = "drag to look · W/S forward/back · A/D left/right · Q/E down/up · scroll dolly · Shift faster";
+        private const string FlyKeys = "1-6 reset to a preset view · drag to look · W/S forward/back · A/D left/right · Q/E down/up · scroll dolly · Shift faster";
 
         public static ModeHud Create(Transform canvas, InteractionController interaction)
         {

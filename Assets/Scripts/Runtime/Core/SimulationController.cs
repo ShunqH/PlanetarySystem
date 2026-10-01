@@ -397,36 +397,40 @@ namespace PlanetSystem.Core
             return def;
         }
 
-        /// <summary>Loads a small circumbinary example so the demo is not empty on first launch.</summary>
+        /// <summary>
+        /// Loads the example system: an equal-mass eccentric binary (0.5 + 0.5 Msun, a = 1 AU, e = 0.8) with
+        /// a Jupiter-mass planet at 5 AU and a massless planet at 10 AU, both on circular polar orbits
+        /// (inc = 90 deg, Omega = 90 deg). With the binary's eccentricity vector along +x, both planetary
+        /// orbit normals point along +x as well, i.e. the planets are polar-aligned with the binary.
+        /// All angles not listed are zero; the planets' elements are relative to the barycenter of the
+        /// massive bodies interior to them.
+        /// </summary>
         public void LoadCircumbinaryExample()
         {
             Clear();
+            double polar = Constants.DegToRad(90.0);
             AddBody(new BodyDefinition
             {
-                Name = "Star A", Kind = BodyKind.Massive, Mass = 0.69, Radius = 0.65 * Constants.SolarRadiusInAu,
+                Name = "Star A", Kind = BodyKind.Massive, Mass = 0.5, Radius = 0.5 * Constants.SolarRadiusInAu,
                 Color = Palette.Pick(0),
             }, out _);
             AddBody(new BodyDefinition
             {
-                Name = "Star B", Kind = BodyKind.Massive, Mass = 0.20, Radius = 0.23 * Constants.SolarRadiusInAu,
-                Color = Palette.Pick(2), ReferenceId = BodyDefinition.CenterOfMassReference,
-                Elements = new OrbitalElements { SemiMajorAxis = 0.22, Eccentricity = 0.16 },
+                Name = "Star B", Kind = BodyKind.Massive, Mass = 0.5, Radius = 0.5 * Constants.SolarRadiusInAu,
+                Color = Palette.Pick(1), ReferenceId = BodyDefinition.CenterOfMassReference,
+                Elements = new OrbitalElements { SemiMajorAxis = 1.0, Eccentricity = 0.8 },
             }, out _);
             AddBody(new BodyDefinition
             {
-                Name = "Planet b", Kind = BodyKind.TestParticle, Radius = 0.75 * Constants.JupiterRadiusInAu,
-                Color = Palette.Pick(3),
-                Elements = new OrbitalElements { SemiMajorAxis = 0.70, Eccentricity = 0.01, Inclination = Constants.DegToRad(1.0) },
+                Name = "Planet b", Kind = BodyKind.Massive, Mass = Constants.JupiterMassInSolar, Radius = Constants.JupiterRadiusInAu,
+                Color = Palette.Pick(3), ReferenceId = BodyDefinition.CenterOfMassReference,
+                Elements = new OrbitalElements { SemiMajorAxis = 5.0, Inclination = polar, LongitudeOfAscendingNode = polar },
             }, out _);
             AddBody(new BodyDefinition
             {
-                Name = "Test c", Kind = BodyKind.TestParticle, Radius = Constants.EarthRadiusInAu,
-                Color = Palette.Pick(6),
-                Elements = new OrbitalElements
-                {
-                    SemiMajorAxis = 1.3, Eccentricity = 0.2, Inclination = Constants.DegToRad(45.0),
-                    LongitudeOfAscendingNode = Constants.DegToRad(60.0), ArgumentOfPericenter = Constants.DegToRad(30.0),
-                },
+                Name = "Planet c", Kind = BodyKind.TestParticle, Radius = Constants.EarthRadiusInAu,
+                Color = Palette.Pick(6), ReferenceId = BodyDefinition.CenterOfMassReference,
+                Elements = new OrbitalElements { SemiMajorAxis = 10.0, Inclination = polar, LongitudeOfAscendingNode = polar },
             }, out _);
         }
     }

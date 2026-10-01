@@ -25,7 +25,7 @@ namespace PlanetSystem.Interaction
     /// drag to look in free-fly). Shortcuts are ignored while a text field has keyboard focus.
     ///
     /// Any state:  F1-F4 select bodies 1-4 · F5 start/stop · F6 slower · F7 faster · Esc edit state · Tab next state
-    /// Edit state: 1-6 camera presets
+    /// Any state:  1-6 camera presets (in free-fly they reset the camera to that view and flying continues)
     /// </summary>
     public sealed class InteractionController : MonoBehaviour
     {
@@ -112,8 +112,7 @@ namespace PlanetSystem.Interaction
             if (kb.escapeKey.wasPressedThisFrame) SetState(InteractionState.Edit);
             if (kb.tabKey.wasPressedThisFrame) CycleState();
 
-            // --- Edit state: camera presets ---
-            if (State == InteractionState.Edit)
+            // --- Camera presets (edit: held / tracked; free-fly: glide there, then keep flying) ---
             {
                 if (Pressed(kb.digit1Key, kb.numpad1Key)) _camera.SetView(CameraView.Oblique);
                 if (Pressed(kb.digit2Key, kb.numpad2Key)) _camera.SetView(CameraView.Top);

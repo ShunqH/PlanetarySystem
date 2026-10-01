@@ -55,7 +55,7 @@ The top bar controls the time evolution:
 | **Start / Stop** | Starts or pauses the integration. |
 | **Reset** | Restores the system to its initial conditions and sets t = 0. |
 | **t = …** | Simulated time since the initial conditions. |
-| **Load example** | A Kepler-16-like binary with a circumbinary planet and a highly inclined test particle. |
+| **Load example** | Polar circumbinary system: an equal-mass eccentric binary (0.5 + 0.5 M☉, a = 1 AU, e = 0.8), a Jupiter-mass planet at 5 AU and a massless planet at 10 AU, both on circular orbits with inc = 90° and Ω = 90°, so their orbit normals are aligned with the binary's eccentricity vector. |
 | **Clear all** | Start from scratch. |
 
 The demo renders at a fixed 60 frames per second, so each frame advances the system by speed / 60 years.
@@ -114,7 +114,7 @@ On a Mac keyboard the F keys control brightness and volume by default. Hold **fn
 "Use F1, F2, etc. keys as standard function keys" in System Settings > Keyboard.
 Shortcuts are ignored while you are typing in a text field.
 
-### Edit mode: preset views
+### Preset views (keys 1-6, both modes)
 
 | Key | View |
 |---|---|
@@ -133,6 +133,9 @@ orbital plane and apsidal line. You can then watch how an outer planet's orbit t
 eccentricity vector. If it has no orbit, as for a single star, the reference frame is used instead.
 
 Returning from free-fly leaves the camera where it was until you press 1-6.
+In free-fly, 1-6 glide the camera to a snapshot of that view, which then becomes the new starting
+point for flying. Views 5 and 6 do not keep tracking in free-fly. Any movement or look input cancels
+the glide.
 Click a body, or a row in the list, to select it.
 
 ### Free-fly mode
@@ -147,6 +150,7 @@ The camera behaves like a drone.
 | Q / E | Down / up |
 | Scroll wheel or two-finger trackpad scroll | Dolly forward / back (a burst of W / S) |
 | Shift | Move faster |
+| 1-6 | Reset the camera to a preset view and keep flying from there |
 
 Movement speed is set from the size of the system when you enter free-fly. Moving closer does not
 change the movement or look sensitivity. A click without dragging still selects bodies.
