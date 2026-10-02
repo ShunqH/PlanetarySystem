@@ -54,7 +54,7 @@ namespace PlanetSystem.UI
             overlayScaler.matchWidthOrHeight = scaler.matchWidthOrHeight;
 
             var editor = BodyEditorPanel.Create(canvasGo.transform, controller, scene);
-            BodyListPanel.Create(canvasGo.transform, controller, editor);
+            BodyListPanel.Create(canvasGo.transform, controller, editor, interaction.RequestSelect);
             var menu = ScenarioMenu.Create(overlayGo.transform, controller, library, editor);
             TopBar.Create(canvasGo.transform, controller, editor, library, menu);
             ModalDialog.Create(overlayGo.transform);

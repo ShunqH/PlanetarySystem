@@ -217,6 +217,7 @@ namespace PlanetSystem.Core
         public BodyRecord AddBody(BodyDefinition def, out string error)
         {
             if (!EnsureEditable(out error)) return null;
+            def.NormalizeReference();
             if (!ValidateDefinition(def, out error)) return null;
 
             var body = new Body(_nextId++, def.Name, def.Kind, def.Mass, def.Radius);
@@ -252,6 +253,7 @@ namespace PlanetSystem.Core
             if (!EnsureEditable(out error)) return false;
             var rec = Find(id);
             if (rec == null) { error = "Body not found."; return false; }
+            def.NormalizeReference();
             if (def.ReferenceId == id) { error = "A body cannot orbit itself."; return false; }
             if (!ValidateDefinition(def, out error)) return false;
 

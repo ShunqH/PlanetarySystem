@@ -276,7 +276,6 @@ namespace PlanetSystem.UI
         public static Dropdown CreateDropdown(Transform parent, IList<string> options, UnityAction<int> onChanged,
             float height = 26f, float width = -1f, int visibleItems = 8)
         {
-            const float itemHeight = 24f;
             var rt = CreateRect(parent, "Dropdown");
             var img = rt.gameObject.AddComponent<Image>();
             img.color = FieldColor;
@@ -300,7 +299,7 @@ namespace PlanetSystem.UI
             template.anchorMax = new Vector2(1f, 0f);
             template.pivot = new Vector2(0.5f, 1f);
             template.anchoredPosition = new Vector2(0f, 2f);
-            template.sizeDelta = new Vector2(0f, itemHeight * Mathf.Min(visibleItems, Mathf.Max(1, options.Count)) + 4f);
+            rt.gameObject.AddComponent<DropdownListSize>().MaxVisibleItems = visibleItems;
 
             var viewport = CreateRect(template, "Viewport");
             viewport.gameObject.AddComponent<Image>().color = Color.white;
@@ -311,12 +310,12 @@ namespace PlanetSystem.UI
             content.anchorMin = new Vector2(0f, 1f);
             content.anchorMax = new Vector2(1f, 1f);
             content.pivot = new Vector2(0.5f, 1f);
-            content.sizeDelta = new Vector2(0f, itemHeight);
+            content.sizeDelta = new Vector2(0f, DropdownItemHeight);
 
             var item = CreateRect(content, "Item");
             item.anchorMin = new Vector2(0f, 0.5f);
             item.anchorMax = new Vector2(1f, 0.5f);
-            item.sizeDelta = new Vector2(0f, itemHeight);
+            item.sizeDelta = new Vector2(0f, DropdownItemHeight);
             var toggle = item.gameObject.AddComponent<Toggle>();
 
             var itemBg = CreateRect(item, "Item Background");
@@ -357,6 +356,7 @@ namespace PlanetSystem.UI
             dd.options.Clear();
             foreach (var o in options) dd.options.Add(new Dropdown.OptionData(o));
             dd.RefreshShownValue();
+            FitListHeight(dd);
             if (onChanged != null) dd.onValueChanged.AddListener(onChanged);
             SetLayout(rt.gameObject, preferredWidth: width, preferredHeight: height, flexibleWidth: width < 0 ? 1f : 0f);
             return dd;
@@ -368,6 +368,21 @@ namespace PlanetSystem.UI
             foreach (var o in options) dd.options.Add(new Dropdown.OptionData(o));
             dd.SetValueWithoutNotify(Mathf.Clamp(selected, 0, Mathf.Max(0, options.Count - 1)));
             dd.RefreshShownValue();
+            FitListHeight(dd);
+        }
+
+        private const float DropdownItemHeight = 24f;
+
+        /// <summary>
+        /// Sizes the open list to show every option, up to the dropdown's maximum, after which it scrolls.
+        /// Must be re-run whenever the options change, otherwise the list keeps the height it had at creation.
+        /// </summary>
+        public static void FitListHeight(Dropdown dd)
+        {
+            var size = dd.GetComponent<DropdownListSize>();
+            int maxVisible = size != null ? size.MaxVisibleItems : 8;
+            int rows = Mathf.Clamp(dd.options.Count, 1, maxVisible);
+            dd.template.sizeDelta = new Vector2(dd.template.sizeDelta.x, DropdownItemHeight * rows + 4f);
         }
     }
 }

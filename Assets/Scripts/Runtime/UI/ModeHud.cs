@@ -12,7 +12,8 @@ namespace PlanetSystem.UI
         private Text _keys;
         private float _nextRefresh;
 
-        private const string GlobalKeys = "F1-F4 select · F5 start/stop · F6/F7 slower/faster · Tab next mode · Esc edit mode";
+        private const string GlobalKeys = "F1-F4 select · F5 start/stop · F6/F7 slower/faster · F focus mode · Tab next mode · Esc edit mode";
+        private const string FocusKeys = "click / F1-F4 a massive body to focus on it · click a test particle for details · 1-6 view direction · scroll zoom";
         private const string EditKeys = "1 oblique · 2 top · 3 along x · 4 along y · 5/6 track primary (⊥ e / along e) · click to select";
         private const string FlyKeys = "1-6 reset to a preset view · drag to look · W/S forward/back · A/D left/right · Q/E down/up · scroll dolly · Shift faster";
 
@@ -55,7 +56,13 @@ namespace PlanetSystem.UI
 
         private void Refresh()
         {
-            if (_interaction.State == InteractionState.FreeFly)
+            if (_interaction.State == InteractionState.Focus)
+            {
+                _mode.text = $"FOCUS  ·  {_interaction.Camera.FocusTargetName}  ·  view {_interaction.Camera.ViewName}";
+                _mode.color = new Color(1f, 0.85f, 0.45f, 1f);
+                _keys.text = FocusKeys + "\n" + GlobalKeys;
+            }
+            else if (_interaction.State == InteractionState.FreeFly)
             {
                 _mode.text = "FREE FLY";
                 _mode.color = new Color(0.55f, 0.85f, 1f, 1f);

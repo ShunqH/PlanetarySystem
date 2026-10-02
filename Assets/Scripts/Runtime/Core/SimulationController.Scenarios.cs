@@ -38,7 +38,8 @@ namespace PlanetSystem.Core
                     var body = built.Bodies[i];
                     var sb = scenario.Bodies[i];
                     int refIndex = sb.ReferenceIndex;
-                    int referenceId = refIndex >= 0 && refIndex < i && built.Bodies[refIndex].IsMassive
+                    // Only test particles may orbit a specific body; massive bodies orbit the barycenter.
+                    int referenceId = !body.IsMassive && refIndex >= 0 && refIndex < i && built.Bodies[refIndex].IsMassive
                         ? built.Bodies[refIndex].Id
                         : BodyDefinition.CenterOfMassReference;
                     var color = new Color((float)sb.Color[0], (float)sb.Color[1], (float)sb.Color[2], 1f);

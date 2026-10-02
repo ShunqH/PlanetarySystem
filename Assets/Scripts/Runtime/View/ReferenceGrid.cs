@@ -12,6 +12,7 @@ namespace PlanetSystem.View
     {
         private MeshFilter _gridFilter, _axisFilter;
         private float _currentExtentAu = -1f;
+        private float _currentSpacingAu = -1f;
         private SimulationSettings _settings;
 
         public static ReferenceGrid Create(Transform parent, SimulationSettings settings)
@@ -42,11 +43,14 @@ namespace PlanetSystem.View
         public void EnsureExtent(double halfExtentAu)
         {
             float spacing = Mathf.Max(0.01f, _settings.GridSpacingAu);
-            // Choose a spacing that keeps the line count reasonable for very large systems.
+            // Choose a spacing (power-of-two multiple of the base) that keeps between about 2 and 20 lines
+            // per side: coarser for large systems, finer for small focus frames.
             while (halfExtentAu / spacing > 20) spacing *= 2f;
+            while (halfExtentAu / spacing < 2 && spacing > 1e-4f) spacing *= 0.5f;
             float extent = Mathf.Max(spacing * 2f, Mathf.Ceil((float)halfExtentAu / spacing) * spacing);
-            if (Mathf.Approximately(extent, _currentExtentAu)) return;
+            if (Mathf.Approximately(extent, _currentExtentAu) && Mathf.Approximately(spacing, _currentSpacingAu)) return;
             _currentExtentAu = extent;
+            _currentSpacingAu = spacing;
 
             float s = _settings.UnitsPerAu;
             var gridVerts = new List<Vector3>();
