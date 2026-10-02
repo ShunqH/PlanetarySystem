@@ -28,10 +28,11 @@ namespace PlanetSystem.Interaction
     /// Drives the main camera. In the edit state it smoothly moves to and holds one of the preset views,
     /// re-framing the system every frame (views 5 and 6 also follow the primary's orbital plane and
     /// apsidal line). In the free-fly state it behaves like a drone: look with the mouse, WASD to move in
-    /// the facing direction, Q/E down/up, scroll to dolly. Driven explicitly by <see cref="View.SceneViewManager"/>
+    /// the facing direction, Q/E down/up, scroll to dolly. In the focus state it travels with one massive
+    /// body without rotating (see CameraController.Focus.cs). Driven explicitly by <see cref="View.SceneViewManager"/>
     /// via <see cref="Tick"/> so the camera moves before labels and line widths are computed each frame.
     /// </summary>
-    public sealed class CameraController : MonoBehaviour
+    public sealed partial class CameraController : MonoBehaviour
     {
         private Camera _camera;
         private SimulationSettings _settings;
@@ -90,6 +91,11 @@ namespace PlanetSystem.Interaction
         public void SetView(CameraView view)
         {
             if (view == CameraView.Custom) return;
+            if (IsFocus)
+            {
+                _focusView = view; // orientation only; the focused body stays centred
+                return;
+            }
             if (IsFreeFly)
             {
                 CaptureOrbitPoseFromTransform();
@@ -144,7 +150,8 @@ namespace PlanetSystem.Interaction
         {
             get
             {
-                switch (View)
+                var view = IsFocus ? _focusView : View;
+                switch (view)
                 {
                     case CameraView.Oblique: return "1  Oblique";
                     case CameraView.Top: return "2  Top (down z)";
@@ -153,6 +160,7 @@ namespace PlanetSystem.Interaction
                     case CameraView.TrackPerpendicular: return $"5  Tracking {PrimaryName()}, ⊥ e";
                     case CameraView.TrackPericenter: return $"6  Tracking {PrimaryName()}, along e";
                     case CameraView.Custom when IsFreeFly: return "free";
+                    case CameraView.Custom when IsFocus: return "current direction (press 1-6 to change)";
                     default: return "Custom (press 1-6 for a preset)";
                 }
             }
@@ -164,7 +172,8 @@ namespace PlanetSystem.Interaction
 
         public void Tick(float dt)
         {
-            if (IsFreeFly) FlyUpdate(dt);
+            if (IsFocus) FocusUpdate(dt);
+            else if (IsFreeFly) FlyUpdate(dt);
             else if (View != CameraView.Custom) FollowView(dt);
             UpdateClipPlanes();
         }
@@ -295,14 +304,16 @@ namespace PlanetSystem.Interaction
         // View definitions
         // ------------------------------------------------------------------
 
-        private float FitDistance(float radiusUnits)
+        private float FitDistance(float radiusUnits) => FitDistance(radiusUnits, _settings.CameraMinDistance);
+
+        private float FitDistance(float radiusUnits, float minDistance)
         {
             float halfFov = _camera.fieldOfView * 0.5f * Mathf.Deg2Rad;
             float aspect = Mathf.Max(0.1f, _camera.aspect);
             float halfFovH = Mathf.Atan(Mathf.Tan(halfFov) * aspect);
             float limiting = Mathf.Min(halfFov, halfFovH);
             float d = radiusUnits * _settings.CameraPadding / Mathf.Sin(limiting);
-            return Mathf.Max(_settings.CameraMinDistance, d);
+            return Mathf.Max(minDistance, d);
         }
 
         /// <summary>Target point, camera rotation and up axis of a preset view (Unity frame).</summary>

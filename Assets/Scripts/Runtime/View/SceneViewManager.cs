@@ -139,16 +139,35 @@ namespace PlanetSystem.View
                 }
             }
             UpdatePreview(ref maxExtentAu);
-            _grid.EnsureExtent(maxExtentAu);
 
             // Pass 2: move the camera for this frame.
             _cameraController.SetFitRadius((float)maxExtentAu * _settings.UnitsPerAu);
             _cameraController.Tick(Time.unscaledDeltaTime);
 
+            // The grid belongs to the view frame: in focus it travels with the focused body (continuously,
+            // never snapped to grid lines), so it stays still on screen instead of flickering past.
+            if (_cameraController.IsFocus)
+            {
+                _grid.transform.position = _cameraController.FocusCenter;
+                _grid.EnsureExtent(1.5 * _cameraController.FocusRadiusAu);
+            }
+            else
+            {
+                _grid.transform.position = Vector3.zero;
+                _grid.EnsureExtent(maxExtentAu);
+            }
+
             // Pass 3: everything that depends on the final camera pose.
             var camPos = _camera.transform.position;
+            int focusId = _cameraController.IsFocus ? _cameraController.FocusTargetId : -1;
             foreach (var rec in _controller.Bodies)
             {
+                // In focus only orbits around the focused body stay still on screen; every other ellipse
+                // (massive bodies, particles orbiting the barycenter or another star) would sweep across
+                // the moving frame, so they are hidden there. Extents above still include them.
+                if (focusId >= 0 && (rec.Body.IsMassive || rec.ReferenceId != focusId))
+                    _orbitViews[rec.Id].SetVisible(false);
+
                 var bv = _bodyViews[rec.Id];
                 bv.UpdateForCamera(_camera, _settings);
                 var orbit = _orbitViews[rec.Id];

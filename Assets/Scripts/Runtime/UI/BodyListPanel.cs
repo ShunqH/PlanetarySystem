@@ -16,7 +16,11 @@ namespace PlanetSystem.UI
         private Text _limits;
         private readonly List<GameObject> _rows = new List<GameObject>();
 
-        public static BodyListPanel Create(Transform canvas, SimulationController controller, BodyEditorPanel editor)
+        private System.Action<int> _onRowClicked;
+
+        /// <param name="onRowClicked">Selection handler for list rows (the interaction controller's rule).</param>
+        public static BodyListPanel Create(Transform canvas, SimulationController controller, BodyEditorPanel editor,
+            System.Action<int> onRowClicked)
         {
             var root = UIFactory.CreatePanel(canvas, "BodyListPanel", 260f);
             root.anchorMin = new Vector2(0f, 1f);
@@ -27,6 +31,7 @@ namespace PlanetSystem.UI
             var panel = root.gameObject.AddComponent<BodyListPanel>();
             panel._controller = controller;
             panel._editor = editor;
+            panel._onRowClicked = onRowClicked;
             panel._root = root;
             panel.Build();
             controller.BodiesChanged += panel.Rebuild;
@@ -63,7 +68,7 @@ namespace PlanetSystem.UI
                 bg.color = id == _controller.SelectedId ? UIFactory.HighlightColor : new Color(1f, 1f, 1f, 0.04f);
                 var btn = row.gameObject.AddComponent<Button>();
                 btn.targetGraphic = bg;
-                btn.onClick.AddListener(() => _controller.Select(id));
+                btn.onClick.AddListener(() => _onRowClicked(id));
 
                 var hl = row.GetComponent<HorizontalLayoutGroup>();
                 hl.padding = new RectOffset(8, 8, 0, 0);

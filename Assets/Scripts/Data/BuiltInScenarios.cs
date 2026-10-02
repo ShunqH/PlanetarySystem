@@ -28,8 +28,11 @@ namespace PlanetSystem.Data
 
         /// <summary>
         /// Sun, the eight planets (all massive) and a massless Halley-like comet.
-        /// Planet orbits: JPL approximate heliocentric ecliptic elements at J2000 (Standish, valid 1800-2050).
-        /// Masses and mean radii are the real values; the reference plane is the J2000 ecliptic.
+        /// Planet orbits: JPL approximate heliocentric ecliptic elements at J2000 (Standish, valid 1800-2050),
+        /// applied relative to the barycenter of the bodies added so far (massive bodies always orbit the
+        /// barycenter), which differs from heliocentric placement by at most ~0.005 AU (the Sun's offset
+        /// once Jupiter is added). Masses and mean radii are the real values; the reference plane is the
+        /// J2000 ecliptic. The massless comet orbits the Sun.
         /// </summary>
         public static Scenario SolarSystem()
         {
@@ -85,7 +88,7 @@ namespace PlanetSystem.Data
             s.Bodies.Add(new ScenarioBody
             {
                 Name = name, Kind = BodyKind.Massive, Mass = mass, Radius = radiusKm * Constants.KmInAu,
-                Color = new[] { r, g, b }, ReferenceIndex = 0, UsesElements = true, Elements = el,
+                Color = new[] { r, g, b }, ReferenceIndex = -1, UsesElements = true, Elements = el,
             });
         }
 
@@ -94,13 +97,12 @@ namespace PlanetSystem.Data
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Classic test-particle Kozai-Lidov setup: a massless particle at 1 AU around a 1 Msun star, inclined
-        /// 65 deg to the circular orbit of a 1 Msun companion at 15 AU. Above 39.2 deg of mutual inclination
-        /// the particle trades inclination for eccentricity; at quadrupole order e_max = sqrt(1 - 5/3 cos^2 i0)
-        /// = 0.84 and the inclination falls to about 39 deg at maximum eccentricity. The outer orbit is
-        /// circular, so the octupole term vanishes and the cycles are regular. The characteristic timescale
-        /// (16 / 30 pi) (m_tot / m_out) P_out^2 / P_in is about 570 yr; starting from e = 0.05 the first
-        /// eccentricity maximum is reached after about 1350 yr and a full cycle takes about 2000 yr.
+        /// Circumstellar Kozai-Lidov setup: an equal-mass circular binary (0.5 + 0.5 Msun, a = 1 AU, elements
+        /// relative to the barycenter) and a massless particle on a circular orbit at 0.1 AU around Star A,
+        /// inclined 60 deg to the binary plane. Above 39.2 deg of mutual inclination the particle trades
+        /// inclination for eccentricity; at quadrupole order e_max = sqrt(1 - 5/3 cos^2 60 deg) = 0.76 with
+        /// the inclination falling to about 39 deg. The binary is circular, so the octupole term vanishes.
+        /// Matches the user's saved case "KZ" (names, colors, radii, integrator and speed included).
         /// </summary>
         public static Scenario KozaiLidov()
         {
@@ -108,21 +110,22 @@ namespace PlanetSystem.Data
             {
                 Name = KozaiLidovName,
                 IsBuiltIn = true,
-                Speed = 100.0,
-                Description = "A test particle at 1 AU inclined 65° to a distant stellar companion (15 AU). Watch e grow to ~0.84 while the inclination drops to ~39° (first maximum after ~1350 yr), then cycle back (~2000 yr per cycle).",
+                IntegratorIndex = 2, // Dormand-Prince: resolves the close pericenter passages at high e
+                Speed = 10.0,
+                Description = "A test particle at 0.1 AU around Star A, inclined 60° to a circular equal-mass binary (a = 1 AU). Watch e grow to ~0.76 while the inclination drops to ~39°, then cycle back.",
             };
-            s.Bodies.Add(Star("Star", 1.0, 1.0, 1.00, 0.85, 0.35));
+            s.Bodies.Add(Star("Star A", 0.5, 1.0, 1.00, 0.85, 0.35));
             s.Bodies.Add(new ScenarioBody
             {
-                Name = "Companion", Kind = BodyKind.Massive, Mass = 1.0, Radius = Constants.SolarRadiusInAu,
-                Color = new[] { 1.00, 0.55, 0.25 }, ReferenceIndex = 0, UsesElements = true,
-                Elements = new OrbitalElements { SemiMajorAxis = 15.0 },
+                Name = "Star B", Kind = BodyKind.Massive, Mass = 0.5, Radius = Constants.SolarRadiusInAu,
+                Color = new[] { 1.00, 0.55, 0.25 }, ReferenceIndex = -1, UsesElements = true,
+                Elements = new OrbitalElements { SemiMajorAxis = 1.0 },
             });
             s.Bodies.Add(new ScenarioBody
             {
-                Name = "Test particle", Kind = BodyKind.TestParticle, Radius = Constants.EarthRadiusInAu,
-                Color = new[] { 0.35, 0.90, 0.75 }, ReferenceIndex = 0, UsesElements = true,
-                Elements = new OrbitalElements { SemiMajorAxis = 1.0, Eccentricity = 0.05, Inclination = Constants.DegToRad(65.0) },
+                Name = "Planet a", Kind = BodyKind.TestParticle, Radius = 0.5 * Constants.SolarRadiusInAu,
+                Color = new[] { 0.95, 0.35, 0.30 }, ReferenceIndex = 0, UsesElements = true,
+                Elements = new OrbitalElements { SemiMajorAxis = 0.1, Inclination = Constants.DegToRad(60.0) },
             });
             return s;
         }

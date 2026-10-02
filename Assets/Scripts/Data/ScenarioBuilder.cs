@@ -6,9 +6,10 @@ namespace PlanetSystem.Data
 {
     /// <summary>
     /// Turns a <see cref="Scenario"/> into physical bodies. Element-defined bodies follow the Add-body rules
-    /// (and Rebound's): the first body sits at the origin; every later one is placed relative to its primary
-    /// (a given earlier body, or the barycenter of the massive bodies added so far) with mu = G (M + m),
-    /// and the system is shifted to its barycenter after each body. State-defined bodies are copied as is.
+    /// (and Rebound's default): the first body sits at the origin; every later one is placed relative to its
+    /// primary with mu = G (M + m), and the system is shifted to its barycenter after each body. Massive
+    /// bodies always use the barycenter of the massive bodies added so far as primary; test particles may
+    /// instead name an earlier massive body. State-defined bodies are copied as is.
     /// </summary>
     public static class ScenarioBuilder
     {
@@ -22,7 +23,8 @@ namespace PlanetSystem.Data
                 var body = new Body(id++, sb.Name, sb.Kind, sb.Mass, sb.Radius);
                 if (sb.UsesElements)
                 {
-                    if (TryGetPrimary(state, sb.ReferenceIndex, index, out var rp, out var rv, out var rm))
+                    int reference = sb.Kind == BodyKind.Massive ? -1 : sb.ReferenceIndex;
+                    if (TryGetPrimary(state, reference, index, out var rp, out var rv, out var rm))
                     {
                         double mu = Constants.G * (rm + body.Mass);
                         OrbitConversion.RelativeStateFromElements(sb.Elements, mu, out var r, out var v);

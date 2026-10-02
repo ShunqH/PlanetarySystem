@@ -20,9 +20,10 @@ horizontal grid; inclination is measured from it.
 ## Building a system
 
 1. **Add star** — the first body is always massive and is placed at the origin.
-2. **Add body** — every further body is defined by its orbital elements relative to a *primary*:
-   either one specific massive body or the center of mass of all massive bodies (use the latter for
-   circumbinary planets). A grey ghost previews the body and its orbit while you adjust the sliders.
+2. **Add body** — every further body is defined by its orbital elements relative to a *primary*.
+   Massive bodies always orbit the center of mass of the other massive bodies. Test particles can use
+   that center of mass, for circumbinary orbits, or one specific massive body, for example a planet
+   around one star of a binary. A grey ghost previews the body and its orbit while you adjust the sliders.
 3. After each addition the whole system is shifted so that the barycenter sits at the origin,
    exactly like Rebound's `move_to_com()`.
 
@@ -42,11 +43,11 @@ current osculating elements; every change is applied immediately and the system 
 `Delete` removes the body; bodies that used it as primary fall back to the center of mass.
 
 The coloured ellipse around each body is its **osculating orbit**: the Keplerian orbit it would follow
-if only its primary acted on it. When the primary is a specific body the ellipse is drawn around that body
-(relative orbit). When the primary is the center of mass, massive bodies are drawn on their **barycentric**
-orbits, so a binary shows two ellipses around the barycenter; the panel still edits the relative elements
-(a, e, ... of one star with respect to the other) and reports the barycentric semi-major axis for reference. Once integration is enabled these ellipses will precess and tilt under
-perturbations, which is the main thing the demo is meant to show.
+if only its primary acted on it. Massive bodies are drawn on their **barycentric** orbits, so a binary
+shows two ellipses around the barycenter. The panel still edits the relative elements, for example
+a, e, ... of one star with respect to the other, and reports the barycentric semi-major axis for reference.
+A test particle with a specific primary is drawn around that body. During integration these ellipses
+precess and tilt under perturbations, which is the main thing the demo is meant to show.
 
 ## Running the simulation
 
@@ -109,7 +110,7 @@ conditions (t = 0). It may also set the speed, and a saved case also restores it
 | Preset | Contents |
 |---|---|
 | Solar System | The Sun and the eight planets at J2000 (JPL approximate elements), all massive, with real masses and radii, plus a massless Halley-like comet (e = 0.967, retrograde). Speed 1 yr/s. |
-| Kozai–Lidov | A test particle at 1 AU around a 1 M☉ star, inclined 65° to a 1 M☉ companion on a circular orbit at 15 AU. The eccentricity grows to about 0.84 while the inclination falls to about 39°, then both cycle back. The first maximum comes after about 1350 yr and each cycle takes about 2000 yr. Speed 100 yr/s. |
+| Kozai–Lidov | A circular equal-mass binary (0.5 + 0.5 M☉, a = 1 AU, defined around the barycenter) and a massless particle on a circular orbit at 0.1 AU around Star A, inclined 60° to the binary plane. The particle's eccentricity grows to about 0.76 while its inclination falls to about 40°, then both cycle back, roughly every 63 yr. Uses Dormand-Prince at 10 yr/s. |
 | Polar Planets | An equal-mass eccentric binary (0.5 + 0.5 M☉, a = 1 AU, e = 0.8), a Jupiter-mass planet at 5 AU and a massless planet at 10 AU. Both planets are on circular polar orbits (inc = 90°, Ω = 90°) aligned with the binary's eccentricity vector. Loaded at startup. |
 
 **Save** works like a game save. It stores the exact positions, velocities, masses, radii and colours
@@ -124,7 +125,8 @@ backed up, shared or written by hand. A body may give `"elements": {"a", "e", "i
 
 ## Camera and keyboard
 
-The app has two interaction modes. **Tab** cycles between them and **Esc** always returns to edit mode.
+The app has three interaction modes: edit, free-fly and focus. **Tab** cycles through them in that
+order and **Esc** always returns to edit mode.
 Switching mode keeps the current camera position. The active mode, view and keys are shown at the
 bottom left of the screen.
 
@@ -135,6 +137,7 @@ bottom left of the screen.
 | F1-F4 | Select body 1-4 (in list order) |
 | F5 | Start / stop integration |
 | F6 / F7 | Slower / faster |
+| F | Focus mode |
 | Tab | Next mode |
 | Esc | Back to edit mode |
 
@@ -182,6 +185,27 @@ The camera behaves like a drone.
 
 Movement speed is set from the size of the system when you enter free-fly. Moving closer does not
 change the movement or look sensitivity. A click without dragging still selects bodies.
+
+### Focus mode
+
+Focus mode follows one massive body with the camera. The camera moves with the body but never
+rotates, so orbits *around* that body stay still on screen however fast the body itself moves. For
+example, a planet around one star of a fast binary shows its eccentricity and inclination evolving
+in place instead of smearing around the barycenter.
+
+- **Entering**: press **F**, or Tab to it. The camera focuses on the selected body if it is massive,
+  otherwise on the first massive body. The current view direction is kept.
+- **Changing the target**: click, or press F1-F4 on, another massive body, and the camera glides to it.
+  Clicking a test particle opens its details as usual. To edit a massive body, return to edit mode with Esc.
+- **View direction**: 1-6 set the direction only, and the focused body stays centred. Views 5 and 6
+  still align with the primary's orbital plane, which shows a planet's tilt relative to the binary.
+- **Zoom**: the frame fits the test particles that orbit the focused body. Without any, it fits the
+  scale of the body's own orbit. Scroll to zoom in or out.
+- **Grid**: the reference grid moves with the focused body, so it stays still on screen.
+- **Orbits shown**: only the orbits of test particles that use the focused body as primary. The other
+  ellipses are hidden, because they would sweep across the moving frame. Bodies and labels stay visible.
+
+Bodies that are not focused may still flicker at high speeds, because they move a long way between frames.
 
 ## Notes
 

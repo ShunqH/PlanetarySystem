@@ -18,6 +18,11 @@ namespace PlanetSystem.Interaction
         Edit = 0,
         /// <summary>Drone-style camera: drag to look, WASD + QE to move, scroll to dolly.</summary>
         FreeFly = 1,
+        /// <summary>
+        /// Camera travels with one massive body without rotating. Selecting a massive body changes the
+        /// focus; selecting a test particle opens its details as usual.
+        /// </summary>
+        Focus = 2,
     }
 
     /// <summary>
@@ -25,6 +30,7 @@ namespace PlanetSystem.Interaction
     /// drag to look in free-fly). Shortcuts are ignored while a text field has keyboard focus.
     ///
     /// Any state:  F1-F4 select bodies 1-4 · F5 start/stop · F6 slower · F7 faster · Esc edit state · Tab next state
+    ///             F focus state
     /// Any state:  1-6 camera presets (in free-fly they reset the camera to that view and flying continues)
     /// </summary>
     public sealed class InteractionController : MonoBehaviour
@@ -58,6 +64,16 @@ namespace PlanetSystem.Interaction
         public void SetState(InteractionState state)
         {
             if (State == state) return;
+            int focusTarget = -1;
+            if (state == InteractionState.Focus)
+            {
+                focusTarget = DefaultFocusTarget();
+                if (focusTarget < 0) return; // nothing massive to focus on
+            }
+
+            // Leave the old state (every exit keeps the current pose), then enter the new one.
+            if (State == InteractionState.FreeFly) _camera.ExitFreeFly();
+            if (State == InteractionState.Focus) _camera.ExitFocus();
             State = state;
             if (state == InteractionState.FreeFly)
             {
@@ -65,17 +81,45 @@ namespace PlanetSystem.Interaction
                 EventSystem.current?.SetSelectedGameObject(null);
                 _camera.EnterFreeFly();
             }
-            else
+            else if (state == InteractionState.Focus)
             {
-                _camera.ExitFreeFly(); // keep the current pose; presets are applied on 1-6
+                _camera.EnterFocus(focusTarget);
             }
             StateChanged?.Invoke(state);
         }
 
+        /// <summary>Next state in enum order; Focus is skipped when there is no massive body.</summary>
         public void CycleState()
         {
             int count = Enum.GetValues(typeof(InteractionState)).Length;
-            SetState((InteractionState)(((int)State + 1) % count));
+            var next = (InteractionState)(((int)State + 1) % count);
+            if (next == InteractionState.Focus && DefaultFocusTarget() < 0) next = (InteractionState)(((int)next + 1) % count);
+            SetState(next);
+        }
+
+        /// <summary>The selected body if it is massive, otherwise the first massive body (or -1).</summary>
+        private int DefaultFocusTarget()
+        {
+            var selected = _sim.Find(_sim.SelectedId);
+            if (selected != null && selected.Body.IsMassive) return selected.Id;
+            foreach (var r in _sim.Bodies) if (r.Body.IsMassive) return r.Id;
+            return -1;
+        }
+
+        /// <summary>
+        /// Selection entry point for clicks, F1-F4 and the body list. In the focus state a massive body
+        /// becomes the new focus instead of being selected; everything else selects as usual (-1 clears).
+        /// </summary>
+        public void RequestSelect(int bodyId)
+        {
+            var rec = _sim.Find(bodyId);
+            if (State == InteractionState.Focus && rec != null && rec.Body.IsMassive)
+            {
+                _camera.SetFocusTarget(bodyId);
+                StateChanged?.Invoke(State); // refresh the HUD
+                return;
+            }
+            _sim.Select(bodyId);
         }
 
         private void Update()
@@ -112,8 +156,10 @@ namespace PlanetSystem.Interaction
             if (kb.f7Key.wasPressedThisFrame) _sim.SetSpeed(_sim.SpeedIndex + 1);
             if (kb.escapeKey.wasPressedThisFrame) SetState(InteractionState.Edit);
             if (kb.tabKey.wasPressedThisFrame) CycleState();
+            if (kb.fKey.wasPressedThisFrame) SetState(InteractionState.Focus);
 
-            // --- Camera presets (edit: held / tracked; free-fly: glide there, then keep flying) ---
+            // --- Camera presets (edit: held / tracked; free-fly: glide there, then keep flying;
+            //     focus: orientation only, the focused body stays centred) ---
             {
                 if (Pressed(kb.digit1Key, kb.numpad1Key)) _camera.SetView(CameraView.Oblique);
                 if (Pressed(kb.digit2Key, kb.numpad2Key)) _camera.SetView(CameraView.Top);
@@ -129,7 +175,7 @@ namespace PlanetSystem.Interaction
 
         private void SelectByIndex(int index)
         {
-            if (index < _sim.Bodies.Count) _sim.Select(_sim.Bodies[index].Id);
+            if (index < _sim.Bodies.Count) RequestSelect(_sim.Bodies[index].Id);
         }
 
         private static bool IsTyping()
@@ -173,7 +219,7 @@ namespace PlanetSystem.Interaction
 
             if (_pressActive && button.wasReleasedThisFrame)
             {
-                if (!_pressOverUI && !_dragging) _sim.Select(_scene.PickBody(pos));
+                if (!_pressOverUI && !_dragging) RequestSelect(_scene.PickBody(pos));
                 _pressActive = false;
                 _dragging = false;
             }

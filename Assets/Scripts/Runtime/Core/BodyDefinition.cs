@@ -21,6 +21,15 @@ namespace PlanetSystem.Core
         public int ReferenceId = CenterOfMassReference;
         public OrbitalElements Elements = OrbitalElements.Circular(1.0);
 
+        /// <summary>
+        /// Massive bodies always orbit the barycenter of the other massive bodies; only test particles may
+        /// use a specific body as primary. Applies that rule in place.
+        /// </summary>
+        public void NormalizeReference()
+        {
+            if (Kind == BodyKind.Massive) ReferenceId = CenterOfMassReference;
+        }
+
         public BodyDefinition Clone()
         {
             return new BodyDefinition

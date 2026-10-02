@@ -228,6 +228,7 @@ namespace PlanetSystem.UI
             bool readOnly = _controller.IsRunning;
             foreach (var s in _root.GetComponentsInChildren<Selectable>(true)) s.interactable = !readOnly;
             _primary.interactable = true;
+            _reference.interactable = !readOnly && _def.Kind == BodyKind.TestParticle;
             if (readOnly) _title.text = $"Live: {_def.Name}";
         }
 
@@ -297,18 +298,28 @@ namespace PlanetSystem.UI
             UpdateInfo();
         }
 
+        /// <summary>
+        /// Primary choices: always the barycenter; specific massive bodies only for test particles
+        /// (massive bodies always orbit the barycenter of the other massive bodies).
+        /// </summary>
         private void RebuildReferenceOptions()
         {
+            _def.NormalizeReference();
             _referenceIds.Clear();
             var labels = new List<string>();
             _referenceIds.Add(BodyDefinition.CenterOfMassReference);
             labels.Add("Center of mass (massive bodies)");
-            foreach (var rec in _controller.Bodies)
+            bool canChoose = _def.Kind == BodyKind.TestParticle;
+            if (canChoose)
             {
-                if (!rec.Body.IsMassive || rec.Id == _editId) continue;
-                _referenceIds.Add(rec.Id);
-                labels.Add(rec.Name);
+                foreach (var rec in _controller.Bodies)
+                {
+                    if (!rec.Body.IsMassive || rec.Id == _editId) continue;
+                    _referenceIds.Add(rec.Id);
+                    labels.Add(rec.Name);
+                }
             }
+            _reference.interactable = canChoose && !_controller.IsRunning;
             int idx = _referenceIds.IndexOf(_def.ReferenceId);
             if (idx < 0) { idx = 0; _def.ReferenceId = BodyDefinition.CenterOfMassReference; }
             UIFactory.SetOptions(_reference, labels, idx);
@@ -407,10 +418,11 @@ namespace PlanetSystem.UI
             string periodText = P < 0.5 ? $"{P * Constants.DaysPerYear:0.##} days" : $"{P:0.###} yr";
             string text = $"Period {periodText}  ·  pericenter {el.Pericenter:0.####} AU  ·  apocenter {el.Apocenter:0.####} AU\n" +
                           $"Elements are relative to the primary (mass {refMass:0.####} M☉), as in Rebound.";
-            if (_def.Kind == BodyKind.Massive && _def.ReferenceId == BodyDefinition.CenterOfMassReference)
+            if (_def.Kind == BodyKind.Massive)
             {
                 double aBary = el.SemiMajorAxis * refMass / (refMass + bodyMass);
-                text += $"\nDrawn ellipse is the barycentric orbit: a = {aBary:0.####} AU.";
+                text += $"\nMassive bodies orbit the barycenter of the other massive bodies; only test particles can pick a specific primary." +
+                        $"\nDrawn ellipse is the barycentric orbit: a = {aBary:0.####} AU.";
             }
             if (_mode == Mode.Edit && _controller.IsRunning)
                 text += "\nLive osculating elements. Stop the integration to edit.";
@@ -428,12 +440,14 @@ namespace PlanetSystem.UI
             if (_suppress) return;
             var kind = index == 0 ? BodyKind.Massive : BodyKind.TestParticle;
             _def.Kind = kind;
+            _def.NormalizeReference(); // a body that becomes massive switches to the barycenter as primary
             if (kind == BodyKind.Massive && _def.Mass <= 0.0) _def.Mass = Constants.JupiterMassInSolar;
             _massRow.SetActive(kind == BodyKind.Massive);
             _suppress = true;
             PickBestMassUnit();
             _massUnit.SetValueWithoutNotify(_massUnitIndex);
             ApplyMassUnit();
+            if (_orbitGroup.activeSelf) RebuildReferenceOptions();
             _suppress = false;
             Apply();
         }

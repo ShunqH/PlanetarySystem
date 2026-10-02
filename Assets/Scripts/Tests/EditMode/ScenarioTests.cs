@@ -108,6 +108,16 @@ namespace PlanetSystem.Physics.Tests
             var kl = BuiltInScenarios.KozaiLidov();
             Assert.AreEqual(2, kl.MassiveCount);
             Assert.AreEqual(3, kl.Bodies.Count);
+            var kls = ScenarioBuilder.Build(kl);
+            // Binary: circular, a = 1 AU, symmetric about the barycenter.
+            Assert.AreEqual(1.0, (kls.Bodies[1].Position - kls.Bodies[0].Position).Length, 1e-12);
+            Assert.AreEqual(0.0, (kls.Bodies[0].Position + kls.Bodies[1].Position).Length, 1e-12);
+            // Particle: circular at 0.1 AU around Star A, 60 deg to the binary plane.
+            var rp = kls.Bodies[2].Position - kls.Bodies[0].Position;
+            var vp = kls.Bodies[2].Velocity - kls.Bodies[0].Velocity;
+            OrbitConversion.TryElementsFromRelativeState(rp, vp, Constants.G * 0.5, out var kel);
+            Assert.AreEqual(0.1, kel.SemiMajorAxis, 1e-12);
+            Assert.AreEqual(Constants.DegToRad(60.0), kel.Inclination, 1e-12);
 
             var polar = ScenarioBuilder.Build(BuiltInScenarios.PolarPlanets());
             var a = polar.Bodies[0];
@@ -121,6 +131,21 @@ namespace PlanetSystem.Physics.Tests
                 var h = Vec3d.Cross(polar.Bodies[k].Position, polar.Bodies[k].Velocity);
                 Assert.AreEqual(1.0, h.X / h.Length, 1e-6);
             }
+        }
+
+        [Test]
+        public void Builder_MassiveBodiesAlwaysOrbitTheBarycenter()
+        {
+            var s = new Scenario();
+            s.Bodies.Add(new ScenarioBody { Name = "A", Mass = 1.0, Radius = 0.005, UsesElements = true });
+            s.Bodies.Add(new ScenarioBody { Name = "B", Mass = 1.0, Radius = 0.005, UsesElements = true, Elements = OrbitalElements.Circular(1.0) });
+            // C names B as its primary, but massive bodies must ignore that and orbit the A+B barycenter.
+            var withRef = new ScenarioBody { Name = "C", Mass = 0.1, Radius = 0.005, ReferenceIndex = 1, UsesElements = true, Elements = OrbitalElements.Circular(5.0) };
+            s.Bodies.Add(withRef);
+            var a = ScenarioBuilder.Build(s);
+            withRef.ReferenceIndex = -1;
+            var b = ScenarioBuilder.Build(s);
+            for (int i = 0; i < 3; i++) Assert.IsTrue(a.Bodies[i].Position.Equals(b.Bodies[i].Position), s.Bodies[i].Name);
         }
 
         [Test]
